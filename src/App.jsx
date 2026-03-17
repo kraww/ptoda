@@ -23,10 +23,10 @@ function AppRoutes() {
 
   useEffect(() => {
     const THEMES = {
-      dark:    { bg: '#0e0e10', sidebar: '#141416', surface: '#1c1c1f', card: '#242428', hover: '#2e2e33', border: '#2e2e33', textPrimary: '#f2f3f5', textSecondary: '#a1a1aa', textMuted: '#52525b' },
-      light:   { bg: '#f0f0f3', sidebar: '#e8e8ec', surface: '#ffffff', card: '#f5f5f8', hover: '#ebebef', border: '#dddde3', textPrimary: '#18181b', textSecondary: '#52525b', textMuted: '#a1a1aa' },
-      neutral: { bg: '#1a1815', sidebar: '#201e1a', surface: '#28251f', card: '#302c25', hover: '#3a352c', border: '#3a352c', textPrimary: '#f0ebe0', textSecondary: '#a89880', textMuted: '#6b5e4a' },
-      forest:  { bg: '#0d1410', sidebar: '#111a14', surface: '#182118', card: '#1e2a1e', hover: '#263426', border: '#2a3a2a', textPrimary: '#e8f0e8', textSecondary: '#8aaa8a', textMuted: '#4a6a4a' },
+      dark:    { bg: '14 14 16',    sidebar: '20 20 22',   surface: '28 28 31',  card: '36 36 40',  hover: '46 46 51',   border: '46 46 51',   textPrimary: '242 243 245', textSecondary: '161 161 170', textMuted: '82 82 91'   },
+      light:   { bg: '240 240 243', sidebar: '232 232 236', surface: '255 255 255', card: '245 245 248', hover: '235 235 239', border: '221 221 227', textPrimary: '24 24 27',   textSecondary: '82 82 91',    textMuted: '161 161 170' },
+      neutral: { bg: '26 26 29',    sidebar: '34 34 37',   surface: '42 42 46',  card: '50 50 54',  hover: '62 62 68',   border: '62 62 68',   textPrimary: '232 232 237', textSecondary: '152 152 168', textMuted: '90 90 110'  },
+      forest:  { bg: '13 20 16',    sidebar: '17 26 20',   surface: '24 33 24',  card: '30 42 30',  hover: '38 52 38',   border: '42 58 42',   textPrimary: '232 240 232', textSecondary: '138 170 138', textMuted: '74 106 74'  },
     }
     const t = THEMES[profile?.active_theme ?? 'dark'] ?? THEMES.dark
     const r = document.documentElement

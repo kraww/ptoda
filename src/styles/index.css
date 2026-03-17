@@ -4,54 +4,17 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/* ─── Theme variables ───────────────────────────────────────────── */
-:root,
-.theme-dark {
-  --color-bg:             #0e0e10;
-  --color-sidebar:        #141416;
-  --color-surface:        #1c1c1f;
-  --color-card:           #242428;
-  --color-hover:          #2e2e33;
-  --color-border:         #2e2e33;
-  --color-text-primary:   #f2f3f5;
-  --color-text-secondary: #a1a1aa;
-  --color-text-muted:     #52525b;
-}
-
-.theme-light {
-  --color-bg:             #f0f0f3;
-  --color-sidebar:        #e8e8ec;
-  --color-surface:        #ffffff;
-  --color-card:           #f5f5f8;
-  --color-hover:          #ebebef;
-  --color-border:         #dddde3;
-  --color-text-primary:   #18181b;
-  --color-text-secondary: #52525b;
-  --color-text-muted:     #a1a1aa;
-}
-
-.theme-neutral {
-  --color-bg:             #1a1815;
-  --color-sidebar:        #201e1a;
-  --color-surface:        #28251f;
-  --color-card:           #302c25;
-  --color-hover:          #3a352c;
-  --color-border:         #3a352c;
-  --color-text-primary:   #f0ebe0;
-  --color-text-secondary: #a89880;
-  --color-text-muted:     #6b5e4a;
-}
-
-.theme-forest {
-  --color-bg:             #0d1410;
-  --color-sidebar:        #111a14;
-  --color-surface:        #182118;
-  --color-card:           #1e2a1e;
-  --color-hover:          #263426;
-  --color-border:         #2a3a2a;
-  --color-text-primary:   #e8f0e8;
-  --color-text-secondary: #8aaa8a;
-  --color-text-muted:     #4a6a4a;
+/* ─── Theme variables (RGB channels — no # prefix) ─────────────── */
+:root {
+  --color-bg:             14 14 16;
+  --color-sidebar:        20 20 22;
+  --color-surface:        28 28 31;
+  --color-card:           36 36 40;
+  --color-hover:          46 46 51;
+  --color-border:         46 46 51;
+  --color-text-primary:   242 243 245;
+  --color-text-secondary: 161 161 170;
+  --color-text-muted:     82 82 91;
 }
 
 @layer base {
@@ -60,8 +23,8 @@
   }
 
   body {
-    background-color: var(--color-bg);
-    color: var(--color-text-primary);
+    background-color: rgb(var(--color-bg));
+    color: rgb(var(--color-text-primary));
     font-family: 'Inter', system-ui, sans-serif;
     min-height: 100vh;
     font-size: 15px;
@@ -70,15 +33,36 @@
 
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--color-hover); }
+  ::-webkit-scrollbar-thumb { background: rgb(var(--color-border)); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgb(var(--color-hover)); }
 
   input, textarea, select {
-    background-color: var(--color-card);
-    color: var(--color-text-primary);
+    background-color: rgb(var(--color-card));
+    color: rgb(var(--color-text-primary));
     outline: none;
   }
-  input::placeholder, textarea::placeholder { color: var(--color-text-muted); }
+  input::placeholder, textarea::placeholder { color: rgb(var(--color-text-muted)); }
+}
+
+@layer utilities {
+  /* Theme color utilities — defined here so the CSS variable is resolved at
+     runtime, not inlined by Tailwind's PostCSS plugin at build time. */
+  .bg-bg      { background-color: rgb(var(--color-bg)); }
+  .bg-sidebar { background-color: rgb(var(--color-sidebar)); }
+  .bg-surface { background-color: rgb(var(--color-surface)); }
+  .bg-card    { background-color: rgb(var(--color-card)); }
+  .bg-hover   { background-color: rgb(var(--color-hover)); }
+
+  .hover\:bg-hover:hover   { background-color: rgb(var(--color-hover)); }
+
+  .border-border             { border-color: rgb(var(--color-border)); }
+  .hover\:border-border:hover { border-color: rgb(var(--color-border)); }
+
+  .text-text-primary            { color: rgb(var(--color-text-primary)); }
+  .text-text-secondary          { color: rgb(var(--color-text-secondary)); }
+  .text-text-muted              { color: rgb(var(--color-text-muted)); }
+  .hover\:text-text-primary:hover   { color: rgb(var(--color-text-primary)); }
+  .hover\:text-text-secondary:hover { color: rgb(var(--color-text-secondary)); }
 }
 
 @layer components {

@@ -4,18 +4,9 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Structural — driven by CSS theme variables
-        bg:      'var(--color-bg)',
-        sidebar: 'var(--color-sidebar)',
-        surface: 'var(--color-surface)',
-        card:    'var(--color-card)',
-        hover:   'var(--color-hover)',
-        border:  'var(--color-border)',
-
-        // Text
-        'text-primary':   'var(--color-text-primary)',
-        'text-secondary': 'var(--color-text-secondary)',
-        'text-muted':     'var(--color-text-muted)',
+        // NOTE: bg, sidebar, surface, card, hover, border, text-primary,
+        // text-secondary, text-muted are defined as raw CSS in index.css
+        // @layer utilities so Tailwind doesn't inline their values.
 
         // Accent — T'poda purple
         accent: {

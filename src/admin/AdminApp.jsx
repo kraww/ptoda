@@ -8,8 +8,7 @@ import AdminDecay from './pages/AdminDecay'
 import AdminUsers from './pages/AdminUsers'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 
-// Replace with your actual admin user IDs from Supabase Auth
-const ADMIN_IDS = []
+const ADMIN_IDS = ['a9a09202-6f21-4b9a-bb20-d0d38c49d9d7']
 
 export default function AdminApp() {
   const { user, loading } = useAuth()

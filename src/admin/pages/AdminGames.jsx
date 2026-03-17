@@ -29,7 +29,7 @@ export default function AdminGames() {
   const [saved, setSaved] = useState(null)
 
   useEffect(() => {
-    supabase.from('games').select('*').order('created_at').then(({ data }) => setGames(data ?? []))
+    supabase.from('games').select('*').order('key').then(({ data }) => setGames(data ?? []))
   }, [])
 
   function openEdit(game) {
@@ -59,7 +59,7 @@ export default function AdminGames() {
       daily_submission_limit: Number(form.daily_submission_limit),
       config,
     }).eq('id', game.id)
-    const { data } = await supabase.from('games').select('*').order('created_at')
+    const { data } = await supabase.from('games').select('*').order('key')
     setGames(data ?? [])
     setSaved(editing)
     setSaving(false)

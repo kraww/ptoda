@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Utensils, Gamepad2, Sparkles, Moon, Pill, AlertTriangle, Egg } from 'lucide-react'
+import { Utensils, Gamepad2, Sparkles, Moon, Pill, AlertTriangle, Egg, Backpack } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { usePet } from '../context/PetContext'
@@ -15,6 +15,7 @@ import StatPanel from '../components/pet/StatPanel'
 import Button from '../components/ui/Button'
 import Toast from '../components/ui/Toast'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
+import InventoryDrawer from '../components/pet/InventoryDrawer'
 
 const CARE_ACTIONS = [
   { id: 'feed',  label: 'Feed',  Icon: Utensils, stat: 'hunger',      accent: 'text-orange-400 border-orange-400/20 hover:bg-orange-400/5' },
@@ -39,6 +40,7 @@ export default function PetPage() {
   const { pet, setPet, species, decayConfig, loading, error, reload } = usePet()
   const [toast, setToast] = useState(null)
   const [acting, setActing] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   if (loading) return <LoadingSpinner message="Loading your pet…" />
 
@@ -221,7 +223,16 @@ export default function PetPage() {
 
       {/* Care actions */}
       <div>
-        <p className="section-label mb-3">Care</p>
+        <div className="flex items-center justify-between mb-3">
+          <p className="section-label">Care</p>
+          <button
+            onClick={() => setDrawerOpen(true)}
+            className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-primary transition-colors"
+          >
+            <Backpack size={13} />
+            Use Item
+          </button>
+        </div>
         <div className={`grid grid-cols-2 gap-2 ${pet.is_sick ? 'opacity-30 pointer-events-none' : ''}`}>
           {CARE_ACTIONS.map(({ id, label, Icon, accent }) => (
             <button
@@ -237,6 +248,7 @@ export default function PetPage() {
         </div>
       </div>
 
+      <InventoryDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
     </div>
   )

@@ -44,6 +44,15 @@ export default {
         lg: '8px',
         xl: '12px',
       },
+      keyframes: {
+        'slide-up': {
+          from: { transform: 'translateY(100%)' },
+          to:   { transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        'slide-up': 'slide-up 0.22s ease-out',
+      },
     },
   },
   plugins: [],

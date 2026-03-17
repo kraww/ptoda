@@ -433,7 +433,7 @@ export default function PetPage() {
       </div>}
 
       {/* Abandon */}
-      <div className="flex justify-center pt-2 pb-8">
+      <div className="flex justify-center">
         {!confirmAbandon ? (
           <button
             onClick={() => setConfirmAbandon(true)}

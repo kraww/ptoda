@@ -2,12 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
   }
 
   body {
-    @apply bg-slate-950 text-slate-100 min-h-screen;
+    background-color: #0e0e10;
+    color: #f2f3f5;
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height: 100vh;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #2e2e33; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3a3a42; }
+
+  /* Input base reset */
+  input, textarea, select {
+    background-color: #1c1c1f;
+    color: #f2f3f5;
+    outline: none;
+  }
+  input::placeholder, textarea::placeholder { color: #52525b; }
+}
+
+@layer components {
+  /* Shared input style */
+  .field {
+    @apply w-full bg-card border border-border rounded text-text-primary px-3 py-2.5 text-sm
+           focus:outline-none focus:border-accent transition-colors;
+  }
+
+  /* Section header */
+  .section-label {
+    @apply text-2xs font-semibold uppercase tracking-widest text-text-muted;
   }
 }

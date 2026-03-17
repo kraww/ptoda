@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Utensils, Gamepad2, Sparkles, Moon, Pill, AlertTriangle, Egg } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { usePet } from '../context/PetContext'
@@ -16,24 +17,21 @@ import Toast from '../components/ui/Toast'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 
 const CARE_ACTIONS = [
-  { id: 'feed',  label: 'Feed',  emoji: '🍖', stat: 'hunger' },
-  { id: 'play',  label: 'Play',  emoji: '⭐', stat: 'happiness' },
-  { id: 'clean', label: 'Clean', emoji: '🫧', stat: 'cleanliness' },
-  { id: 'sleep', label: 'Sleep', emoji: '⚡', stat: 'energy' },
+  { id: 'feed',  label: 'Feed',  Icon: Utensils, stat: 'hunger',      accent: 'text-orange-400 border-orange-400/20 hover:bg-orange-400/5' },
+  { id: 'play',  label: 'Play',  Icon: Gamepad2, stat: 'happiness',   accent: 'text-yellow-400 border-yellow-400/20 hover:bg-yellow-400/5' },
+  { id: 'clean', label: 'Clean', Icon: Sparkles, stat: 'cleanliness', accent: 'text-sky-400    border-sky-400/20    hover:bg-sky-400/5'    },
+  { id: 'sleep', label: 'Sleep', Icon: Moon,     stat: 'energy',      accent: 'text-green-400  border-green-400/20  hover:bg-green-400/5'  },
 ]
 
 function getSickTimeLeft(sickSince, decayConfig) {
   if (!sickSince) return null
   const windowHours = decayConfig?.find(r => r.recovery_window_hours != null)?.recovery_window_hours
     ?? DEFAULT_RECOVERY_WINDOW_HOURS
-  const sickMs   = new Date(sickSince).getTime()
-  const expiryMs = sickMs + windowHours * 60 * 60 * 1000
-  const msLeft   = expiryMs - Date.now()
+  const msLeft = (new Date(sickSince).getTime() + windowHours * 3600000) - Date.now()
   if (msLeft <= 0) return 'Overdue'
-  const hoursLeft = Math.floor(msLeft / (1000 * 60 * 60))
-  const minsLeft  = Math.floor((msLeft % (1000 * 60 * 60)) / (1000 * 60))
-  if (hoursLeft > 0) return `${hoursLeft}h ${minsLeft}m left`
-  return `${minsLeft} minutes left`
+  const h = Math.floor(msLeft / 3600000)
+  const m = Math.floor((msLeft % 3600000) / 60000)
+  return h > 0 ? `${h}h ${m}m remaining` : `${m}m remaining`
 }
 
 export default function PetPage() {
@@ -43,19 +41,24 @@ export default function PetPage() {
   const [acting, setActing] = useState(false)
 
   if (loading) return <LoadingSpinner message="Loading your pet…" />
+
   if (error) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center">
-      <div className="text-4xl">😵</div>
-      <p className="text-red-400">{error}</p>
-      <Button onClick={reload}>Try Again</Button>
+      <p className="text-danger text-sm">{error}</p>
+      <Button onClick={reload}>Try again</Button>
     </div>
   )
+
   if (!pet) return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-6">
-      <div className="text-5xl">🪺</div>
-      <h2 className="text-xl font-bold">No pet yet</h2>
-      <p className="text-slate-400 text-sm">Your egg is waiting for you</p>
-      <Link to="/adopt"><Button size="lg">Adopt an Egg</Button></Link>
+    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5 text-center px-6">
+      <div className="w-20 h-20 rounded-xl bg-surface border border-border flex items-center justify-center">
+        <Egg size={36} className="text-text-muted" />
+      </div>
+      <div>
+        <h2 className="text-lg font-semibold text-text-primary">No pet yet</h2>
+        <p className="text-text-muted text-sm mt-1">Adopt an egg to get started</p>
+      </div>
+      <Link to="/adopt"><Button>Adopt an Egg</Button></Link>
     </div>
   )
 
@@ -68,13 +71,12 @@ export default function PetPage() {
     if (acting || pet.is_sick) return
     setActing(true)
     try {
-      const stat   = action.stat
-      const newVal = Math.min(STAT_MAX, (pet[stat] ?? 0) + 20)
+      const stat    = action.stat
+      const newVal  = Math.min(STAT_MAX, (pet[stat] ?? 0) + 20)
       const newCounts = { ...pet.action_counts, [action.id]: (pet.action_counts?.[action.id] ?? 0) + 1 }
 
       await supabase.from('pets').update({
-        [stat]: newVal,
-        action_counts: newCounts,
+        [stat]: newVal, action_counts: newCounts,
         last_stat_update: new Date().toISOString(),
       }).eq('id', pet.id)
 
@@ -83,19 +85,15 @@ export default function PetPage() {
       await supabase.from('care_log').insert({ pet_id: pet.id, action: action.id, coins_earned: COINS_PER_ACTION })
 
       setPet(p => ({ ...p, [stat]: newVal, action_counts: newCounts }))
-      setToast(`${action.emoji} ${action.label}! +${COINS_PER_ACTION} coins`)
-    } catch (e) {
-      setToast('Something went wrong')
-    } finally {
-      setActing(false)
-    }
+      setToast(`${action.label} +${COINS_PER_ACTION} coins`)
+    } catch { setToast('Something went wrong') }
+    finally { setActing(false) }
   }
 
   async function useMedicine() {
     if (acting) return
     setActing(true)
     try {
-      // Find medicine in inventory
       const { data: inv } = await supabase
         .from('inventory')
         .select('id, quantity, items!inner(id, category)')
@@ -105,30 +103,21 @@ export default function PetPage() {
         .limit(1)
         .maybeSingle()
 
-      if (!inv) { setToast('No medicine in your bag!'); setActing(false); return }
+      if (!inv) { setToast('No medicine in your bag'); setActing(false); return }
 
-      // Recover the pet — reset all stats to 40
       await supabase.from('pets').update({
-        is_sick: false,
-        sick_since: null,
-        hunger: 40,
-        happiness: 40,
-        cleanliness: 40,
-        energy: 40,
+        is_sick: false, sick_since: null,
+        hunger: 40, happiness: 40, cleanliness: 40, energy: 40,
         last_stat_update: new Date().toISOString(),
       }).eq('id', pet.id)
 
-      // Consume one medicine
       await supabase.from('inventory').update({ quantity: inv.quantity - 1 }).eq('id', inv.id)
       await supabase.from('care_log').insert({ pet_id: pet.id, action: 'medicine', item_id: inv.items.id, coins_earned: 0 })
 
       await reload()
-      setToast(`💊 ${pet.name} is recovering!`)
-    } catch (e) {
-      setToast('Something went wrong')
-    } finally {
-      setActing(false)
-    }
+      setToast(`${pet.name} is recovering`)
+    } catch { setToast('Something went wrong') }
+    finally { setActing(false) }
   }
 
   async function hatch() {
@@ -137,12 +126,9 @@ export default function PetPage() {
     try {
       await supabase.from('pets').update({ stage: STAGE_BABY, last_stat_update: new Date().toISOString() }).eq('id', pet.id)
       await reload()
-      setToast('🐣 Your egg hatched!')
-    } catch (e) {
-      setToast('Something went wrong')
-    } finally {
-      setActing(false)
-    }
+      setToast('Your egg hatched!')
+    } catch { setToast('Something went wrong') }
+    finally { setActing(false) }
   }
 
   async function evolve() {
@@ -151,104 +137,105 @@ export default function PetPage() {
     try {
       const form = determineEvolution(pet.action_counts)
       await supabase.from('pets').update({
-        stage: STAGE_EVOLVED,
-        evolution_form: form,
-        evolved_at: new Date().toISOString(),
-        last_stat_update: new Date().toISOString(),
+        stage: STAGE_EVOLVED, evolution_form: form,
+        evolved_at: new Date().toISOString(), last_stat_update: new Date().toISOString(),
       }).eq('id', pet.id)
       await reload()
-      setToast(`✨ ${pet.name} evolved into a ${form}!`)
-    } catch (e) {
-      setToast('Something went wrong')
-    } finally {
-      setActing(false)
-    }
+      setToast(`${pet.name} evolved into ${form} form`)
+    } catch { setToast('Something went wrong') }
+    finally { setActing(false) }
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* Header */}
+    <div className="flex flex-col gap-4">
+
+      {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold">{pet.name}</h1>
-          <p className="text-slate-400 text-sm capitalize">{pet.stage} · {species?.name ?? '?'}</p>
+          <h1 className="text-xl font-bold text-text-primary">{pet.name}</h1>
+          <p className="text-text-muted text-sm capitalize">{species?.name ?? '—'} · {pet.stage}</p>
         </div>
         <div className="text-right">
-          <div className="text-primary-400 font-bold">{profile?.coins ?? 0} 🪙</div>
-          <div className="text-slate-500 text-xs">coins</div>
+          <p className="text-sm font-semibold text-text-primary">{profile?.coins ?? 0}</p>
+          <p className="text-2xs text-text-muted">coins</p>
         </div>
       </div>
 
-      {/* Sick banner */}
+      {/* Sick warning */}
       {pet.is_sick && (
-        <div className="bg-red-950 border border-red-700 rounded-2xl p-4 flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🤒</span>
+        <div className="bg-danger/5 border border-danger/30 rounded-lg p-4">
+          <div className="flex items-start gap-3 mb-3">
+            <AlertTriangle size={16} className="text-danger shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold text-red-300">{pet.name} is sick!</p>
-              <p className="text-red-400 text-sm">Use medicine to nurse them back to health.</p>
+              <p className="text-sm font-semibold text-danger">{pet.name} is sick</p>
+              <p className="text-xs text-text-muted mt-0.5">
+                Use medicine to nurse them back to health.{' '}
+                {timeLeft && <span className="text-warn font-medium">{timeLeft}.</span>}
+              </p>
             </div>
           </div>
-          {timeLeft && (
-            <p className="text-xs text-red-500 text-center font-mono bg-red-950/60 rounded-xl py-1.5">
-              ⏳ Recovery window: {timeLeft}
-            </p>
-          )}
-          <Button onClick={useMedicine} disabled={acting} variant="danger" className="w-full">
-            💊 Use Medicine
-          </Button>
-          <p className="text-xs text-slate-500 text-center">
-            No medicine? Buy some in the <Link to="/shop" className="text-primary-400 underline">Shop</Link>.
-          </p>
+          <div className="flex items-center gap-3">
+            <Button onClick={useMedicine} disabled={acting} variant="danger" size="sm">
+              <Pill size={13} /> Use Medicine
+            </Button>
+            <Link to="/shop" className="text-xs text-text-muted hover:text-text-secondary transition-colors">
+              Buy medicine
+            </Link>
+          </div>
         </div>
       )}
 
       {/* Pet display */}
-      <div className={`flex justify-center py-4 rounded-2xl border ${pet.is_sick ? 'bg-red-950/20 border-red-900' : 'bg-slate-900 border-slate-800'}`}>
-        <div className={pet.is_sick ? 'grayscale opacity-70' : ''}>
-          <PetSprite pet={pet} species={species} size={160} />
+      <div className={`relative flex justify-center items-center py-10 bg-surface border border-border rounded-lg ${pet.is_sick ? 'opacity-50 grayscale' : ''}`}>
+        <PetSprite pet={pet} species={species} size={180} />
+
+        {/* Stage badge */}
+        <div className="absolute top-3 right-3">
+          <span className="text-2xs font-semibold uppercase tracking-wide text-text-muted bg-card border border-border px-2 py-1 rounded">
+            {pet.stage === STAGE_EVOLVED && pet.evolution_form ? pet.evolution_form : pet.stage}
+          </span>
         </div>
       </div>
 
-      {/* Stage prompts (only when healthy) */}
+      {/* Stage prompts */}
       {!pet.is_sick && canHatch && (
-        <div className="bg-primary-900/40 border border-primary-700 rounded-2xl p-4 text-center">
-          <p className="text-primary-300 font-semibold mb-2">Your egg is ready to hatch! 🐣</p>
-          <Button onClick={hatch} disabled={acting}>Hatch Now</Button>
+        <div className="bg-surface border border-accent/30 rounded-lg p-4 flex items-center justify-between">
+          <p className="text-sm text-text-secondary">Your egg is ready to hatch</p>
+          <Button onClick={hatch} disabled={acting} size="sm">Hatch</Button>
         </div>
       )}
       {!pet.is_sick && canEvolve && (
-        <div className="bg-yellow-900/30 border border-yellow-700 rounded-2xl p-4 text-center">
-          <p className="text-yellow-300 font-semibold mb-2">Your pet is ready to evolve! ✨</p>
-          <Button onClick={evolve} disabled={acting}>Evolve</Button>
+        <div className="bg-surface border border-yellow-400/30 rounded-lg p-4 flex items-center justify-between">
+          <p className="text-sm text-text-secondary">Ready to evolve</p>
+          <Button onClick={evolve} disabled={acting} size="sm">Evolve</Button>
         </div>
       )}
       {!pet.is_sick && pet.stage === STAGE_EGG && !canHatch && (
-        <div className="text-center text-slate-500 text-sm">
-          Care for your egg {HATCH_ACTION_THRESHOLD - totalActions} more time{HATCH_ACTION_THRESHOLD - totalActions === 1 ? '' : 's'} to hatch it
-        </div>
+        <p className="text-center text-text-muted text-xs">
+          {HATCH_ACTION_THRESHOLD - totalActions} more care action{HATCH_ACTION_THRESHOLD - totalActions === 1 ? '' : 's'} until hatch
+        </p>
       )}
 
       {/* Stats */}
       <StatPanel pet={pet} />
 
-      {/* Care actions — locked when sick */}
-      <div className={`grid grid-cols-2 gap-3 ${pet.is_sick ? 'opacity-40 pointer-events-none' : ''}`}>
-        {CARE_ACTIONS.map(action => (
-          <button
-            key={action.id}
-            onClick={() => doCareAction(action)}
-            disabled={acting || pet.is_sick}
-            className="bg-slate-900 hover:bg-slate-800 active:scale-95 border border-slate-800 rounded-2xl p-4 flex flex-col items-center gap-1.5 transition-all disabled:opacity-50"
-          >
-            <span className="text-3xl">{action.emoji}</span>
-            <span className="text-sm font-semibold">{action.label}</span>
-          </button>
-        ))}
+      {/* Care actions */}
+      <div>
+        <p className="section-label mb-3">Care</p>
+        <div className={`grid grid-cols-2 gap-2 ${pet.is_sick ? 'opacity-30 pointer-events-none' : ''}`}>
+          {CARE_ACTIONS.map(({ id, label, Icon, accent }) => (
+            <button
+              key={id}
+              onClick={() => doCareAction({ id, label, stat: CARE_ACTIONS.find(a => a.id === id).stat })}
+              disabled={acting || pet.is_sick}
+              className={`flex items-center gap-3 px-4 py-3.5 bg-surface border rounded-lg transition-colors disabled:opacity-40 ${accent}`}
+            >
+              <Icon size={16} strokeWidth={2} />
+              <span className="text-sm font-medium text-text-primary">{label}</span>
+            </button>
+          ))}
+        </div>
       </div>
-      {pet.is_sick && (
-        <p className="text-center text-red-500 text-xs">Care actions are locked while your pet is sick</p>
-      )}
 
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
     </div>

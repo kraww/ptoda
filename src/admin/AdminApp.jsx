@@ -20,14 +20,14 @@ export default function AdminApp() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="bg-slate-900 border-b border-slate-700 px-4 py-3">
+      <div className="bg-sidebar border-b border-border px-4 py-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <h1 className="font-bold text-primary-400">T'poda Admin</h1>
-          <span className="text-slate-500 text-xs">{user.email}</span>
+          <h1 className="font-bold text-text-primary">T'poda <span className="text-text-muted font-normal">Admin</span></h1>
+          <span className="text-text-muted text-xs">{user.email}</span>
         </div>
       </div>
       <AdminNav />
-      <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-6">
+      <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-6 bg-bg min-h-screen">
         <Routes>
           <Route index element={<AdminDashboard />} />
           <Route path="species" element={<AdminSpecies />} />

@@ -26,50 +26,37 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="text-5xl mb-3">🥚</div>
-          <h1 className="text-2xl font-bold text-primary-400">Welcome back</h1>
+    <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-6">
+      <div className="w-full max-w-sm flex flex-col gap-6">
+
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary">Welcome back</h1>
+          <p className="text-text-muted text-sm mt-1">Log in to check on your pet</p>
         </div>
 
+        {error && (
+          <div className="bg-danger/5 border border-danger/30 rounded text-danger text-sm px-4 py-3">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {error && (
-            <div className="bg-red-900/40 border border-red-700 text-red-300 text-sm rounded-xl px-4 py-3">
-              {error}
-            </div>
-          )}
-
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm text-slate-400">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-primary-500"
-            />
+            <label className="text-xs font-medium text-text-secondary">Email</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="field" />
           </div>
-
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm text-slate-400">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-primary-500"
-            />
+            <label className="text-xs font-medium text-text-secondary">Password</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required className="field" />
           </div>
-
-          <Button type="submit" size="lg" disabled={loading} className="mt-2">
+          <Button type="submit" size="lg" disabled={loading} className="mt-1">
             {loading ? 'Logging in…' : 'Log In'}
           </Button>
         </form>
 
-        <p className="text-center text-slate-500 text-sm mt-6">
+        <p className="text-center text-text-muted text-sm">
           No account?{' '}
-          <Link to="/register" className="text-primary-400 hover:underline">Sign up</Link>
+          <Link to="/register" className="text-accent-light hover:underline">Sign up</Link>
         </p>
       </div>
     </div>

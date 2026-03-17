@@ -4,21 +4,45 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: {
-          50:  '#f5f3ff',
-          100: '#ede9fe',
-          200: '#ddd6fe',
-          300: '#c4b5fd',
-          400: '#a78bfa',
-          500: '#8b5cf6',
-          600: '#7c3aed',
-          700: '#6d28d9',
-          800: '#5b21b6',
-          900: '#4c1d95',
+        // Structural backgrounds (dark → light)
+        bg:      '#0e0e10',   // outermost page background
+        sidebar: '#141416',   // left sidebar
+        surface: '#1c1c1f',   // content panels
+        card:    '#242428',   // cards, inputs
+        hover:   '#2e2e33',   // hover states
+        border:  '#2e2e33',   // dividers and borders
+
+        // Text
+        'text-primary':   '#f2f3f5',
+        'text-secondary': '#a1a1aa',
+        'text-muted':     '#52525b',
+
+        // Accent — T'poda purple
+        accent: {
+          DEFAULT: '#7c3aed',
+          hover:   '#6d28d9',
+          light:   '#a78bfa',
+          subtle:  '#1e1730',
         },
+
+        // Status
+        danger:  '#e5484d',
+        warn:    '#f59e0b',
+        success: '#22c55e',
       },
       fontFamily: {
-        sans: ['system-ui', 'sans-serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+      },
+      fontSize: {
+        '2xs': '0.65rem',
+      },
+      borderRadius: {
+        DEFAULT: '6px',
+        sm: '4px',
+        md: '6px',
+        lg: '8px',
+        xl: '12px',
       },
     },
   },

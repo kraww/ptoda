@@ -1,28 +1,32 @@
 import { NavLink } from 'react-router-dom'
+import { LayoutDashboard, Dna, Package, Clock, Users } from 'lucide-react'
 
 const LINKS = [
-  { to: '/admin',         label: 'Dashboard', icon: '📊', end: true },
-  { to: '/admin/species', label: 'Species',   icon: '🐾' },
-  { to: '/admin/items',   label: 'Items',     icon: '📦' },
-  { to: '/admin/decay',   label: 'Decay',     icon: '⏱️' },
-  { to: '/admin/users',   label: 'Users',     icon: '👥' },
+  { to: '/admin',         label: 'Dashboard', Icon: LayoutDashboard, end: true },
+  { to: '/admin/species', label: 'Species',   Icon: Dna },
+  { to: '/admin/items',   label: 'Items',     Icon: Package },
+  { to: '/admin/decay',   label: 'Decay',     Icon: Clock },
+  { to: '/admin/users',   label: 'Users',     Icon: Users },
 ]
 
 export default function AdminNav() {
   return (
-    <nav className="bg-slate-900 border-b border-slate-800 px-4">
-      <div className="flex gap-1 overflow-x-auto max-w-4xl mx-auto">
-        {LINKS.map(({ to, label, icon, end }) => (
+    <nav className="bg-sidebar border-b border-border">
+      <div className="flex gap-0 overflow-x-auto max-w-4xl mx-auto px-4">
+        {LINKS.map(({ to, label, Icon, end }) => (
           <NavLink
             key={to}
             to={to}
             end={end}
             className={({ isActive }) =>
-              `flex items-center gap-1.5 px-3 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors
-              ${isActive ? 'border-primary-500 text-primary-400' : 'border-transparent text-slate-400 hover:text-slate-200'}`
+              `flex items-center gap-2 px-4 py-3.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors
+              ${isActive
+                ? 'border-accent text-accent-light'
+                : 'border-transparent text-text-muted hover:text-text-secondary'}`
             }
           >
-            <span>{icon}</span> {label}
+            <Icon size={14} strokeWidth={2} />
+            {label}
           </NavLink>
         ))}
       </div>

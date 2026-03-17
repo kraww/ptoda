@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Utensils, Gamepad2, Sparkles, Moon, Pill, AlertTriangle, Egg, Backpack } from 'lucide-react'
+import { Utensils, Gamepad2, Sparkles, Moon, Pill, AlertTriangle, Egg, Backpack, ChevronUp } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { usePet } from '../context/PetContext'
@@ -223,16 +223,7 @@ export default function PetPage() {
 
       {/* Care actions */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <p className="section-label">Care</p>
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-primary transition-colors"
-          >
-            <Backpack size={13} />
-            Use Item
-          </button>
-        </div>
+        <p className="section-label mb-3">Care</p>
         <div className={`grid grid-cols-2 gap-2 ${pet.is_sick ? 'opacity-30 pointer-events-none' : ''}`}>
           {CARE_ACTIONS.map(({ id, label, Icon, accent }) => (
             <button
@@ -246,6 +237,18 @@ export default function PetPage() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Bag pull-up tab — fixed to bottom of screen */}
+      <div className="fixed bottom-14 md:bottom-0 left-0 right-0 z-40 flex justify-center pointer-events-none">
+        <button
+          onClick={() => setDrawerOpen(true)}
+          className="pointer-events-auto flex items-center gap-2 bg-card border border-border border-b-0 rounded-t-xl px-6 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-hover transition-colors shadow-lg"
+        >
+          <Backpack size={15} strokeWidth={2} />
+          Bag
+          <ChevronUp size={13} className="text-text-muted" />
+        </button>
       </div>
 
       <InventoryDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />

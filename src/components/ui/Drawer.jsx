@@ -1,34 +1,38 @@
 import { useEffect } from 'react'
-import { X } from 'lucide-react'
+import { X, ChevronDown } from 'lucide-react'
 
-export default function Drawer({ open, onClose, title, children }) {
-  // Lock body scroll when open
+export default function Drawer({ open, onClose, title, children, trigger }) {
   useEffect(() => {
     if (open) document.body.style.overflow = 'hidden'
     else document.body.style.overflow = ''
     return () => { document.body.style.overflow = '' }
   }, [open])
 
-  if (!open) return null
-
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end">
+    <>
+      {/* Pull-up trigger tab — always visible at bottom */}
+      {trigger}
+
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60"
-        onClick={onClose}
-      />
+      {open && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60"
+          onClick={onClose}
+        />
+      )}
 
       {/* Sheet */}
-      <div className="relative bg-surface border-t border-border rounded-t-xl w-full max-h-[70vh] flex flex-col shadow-2xl animate-slide-up">
-        {/* Handle + header */}
+      <div
+        className={`fixed left-0 right-0 bottom-0 z-50 flex flex-col bg-surface border-t border-border rounded-t-xl shadow-2xl transition-transform duration-300 ease-out
+          ${open ? 'translate-y-0' : 'translate-y-full'}`}
+        style={{ maxHeight: '70vh' }}
+      >
+        {/* Drag handle + header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-1 bg-border rounded-full absolute top-2.5 left-1/2 -translate-x-1/2" />
-            <h2 className="font-semibold text-text-primary">{title}</h2>
-          </div>
+          <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-8 h-1 bg-border rounded-full" />
+          <h2 className="font-semibold text-text-primary">{title}</h2>
           <button onClick={onClose} className="text-text-muted hover:text-text-primary transition-colors">
-            <X size={16} />
+            <ChevronDown size={18} />
           </button>
         </div>
 
@@ -37,6 +41,6 @@ export default function Drawer({ open, onClose, title, children }) {
           {children}
         </div>
       </div>
-    </div>
+    </>
   )
 }

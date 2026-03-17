@@ -1,12 +1,11 @@
 import { NavLink } from 'react-router-dom'
-import { Home, ShoppingBag, Package, Newspaper, User } from 'lucide-react'
+import { Home, ShoppingBag, Newspaper, User } from 'lucide-react'
 
 const LINKS = [
-  { to: '/pet',       label: 'Home',  Icon: Home },
-  { to: '/shop',      label: 'Shop',  Icon: ShoppingBag },
-  { to: '/inventory', label: 'Items', Icon: Package },
-  { to: '/news',      label: 'News',  Icon: Newspaper },
-  { to: '/profile',   label: 'Me',    Icon: User },
+  { to: '/pet',    label: 'Home',   Icon: Home },
+  { to: '/shop',   label: 'Shop',   Icon: ShoppingBag },
+  { to: '/news',   label: 'News',   Icon: Newspaper },
+  { to: '/profile',label: 'Me',     Icon: User },
 ]
 
 export default function BottomNav() {

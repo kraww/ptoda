@@ -11,8 +11,9 @@ import PetPage        from './pages/PetPage'
 import ShopPage       from './pages/ShopPage'
 import InventoryPage  from './pages/InventoryPage'
 import NewsPage       from './pages/NewsPage'
-import ProfilePage    from './pages/ProfilePage'
-import NotFoundPage   from './pages/NotFoundPage'
+import ProfilePage       from './pages/ProfilePage'
+import PublicProfilePage from './pages/PublicProfilePage'
+import NotFoundPage      from './pages/NotFoundPage'
 import AdminApp       from './admin/AdminApp'
 import LoadingSpinner from './components/ui/LoadingSpinner'
 
@@ -41,6 +42,9 @@ function AppRoutes() {
       <Route path="/shop"      element={user ? <AppShell><ShopPage /></AppShell>      : <Navigate to="/login" replace />} />
       <Route path="/inventory" element={user ? <AppShell><InventoryPage /></AppShell> : <Navigate to="/login" replace />} />
       <Route path="/profile"   element={user ? <AppShell><ProfilePage /></AppShell>   : <Navigate to="/login" replace />} />
+
+      {/* Public profiles — no login required */}
+      <Route path="/user/:username" element={<PublicProfilePage />} />
 
       {/* Admin */}
       <Route path="/admin/*" element={<AdminApp />} />

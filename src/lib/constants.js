@@ -2,6 +2,10 @@
 export const STAT_MAX = 100
 export const STAT_MIN = 0
 export const STAT_CRITICAL = 20  // Below this, show warning
+export const STAT_SICK = 0       // At this level, pet becomes sick
+
+// Default recovery window before a sick pet is lost
+export const DEFAULT_RECOVERY_WINDOW_HOURS = 48
 
 // Pet stages
 export const STAGE_EGG = 'egg'

@@ -18,11 +18,9 @@ export function PetProvider({ children }) {
     setLoading(true)
     setError(null)
     try {
-      // Load decay config
       const { data: decayCfg } = await supabase.from('decay_config').select('*')
       setDecayConfig(decayCfg ?? [])
 
-      // Load pet
       const { data: petData, error: petErr } = await supabase
         .from('pets')
         .select('*')
@@ -35,11 +33,32 @@ export function PetProvider({ children }) {
 
       if (!petData) { setPet(null); setSpecies(null); setLoading(false); return }
 
-      // Apply time-based stat decay
+      // Apply time-based stat decay (may trigger sick or death)
       const decayed = applyDecay(petData, decayCfg ?? [])
+
+      // If decay changed sick or alive status, save it back to DB
+      const sickChanged  = decayed.is_sick   !== petData.is_sick
+      const aliveChanged = decayed.is_alive  !== petData.is_alive
+      const statsChanged = decayed.hunger      !== petData.hunger
+                        || decayed.happiness   !== petData.happiness
+                        || decayed.cleanliness !== petData.cleanliness
+                        || decayed.energy      !== petData.energy
+
+      if (sickChanged || aliveChanged || statsChanged) {
+        const updates = {
+          hunger:      decayed.hunger,
+          happiness:   decayed.happiness,
+          cleanliness: decayed.cleanliness,
+          energy:      decayed.energy,
+          last_stat_update: new Date().toISOString(),
+        }
+        if (sickChanged)  { updates.is_sick   = decayed.is_sick;   updates.sick_since = decayed.sick_since ?? null }
+        if (aliveChanged) { updates.is_alive  = decayed.is_alive }
+        await supabase.from('pets').update(updates).eq('id', petData.id)
+      }
+
       setPet(decayed)
 
-      // Load species info
       const { data: sp } = await supabase
         .from('species')
         .select('*')

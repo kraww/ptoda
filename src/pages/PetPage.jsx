@@ -239,16 +239,18 @@ export default function PetPage() {
         </div>
       </div>
 
-      {/* Bag pull-up tab — fixed to bottom of screen */}
-      <div className="fixed bottom-14 md:bottom-0 left-0 right-0 z-40 flex justify-center pointer-events-none">
-        <button
-          onClick={() => setDrawerOpen(true)}
-          className="pointer-events-auto flex items-center gap-2 bg-card border border-border border-b-0 rounded-t-xl px-6 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-hover transition-colors shadow-lg"
-        >
-          <Backpack size={15} strokeWidth={2} />
-          Bag
-          <ChevronUp size={13} className="text-text-muted" />
-        </button>
+      {/* Bag pull-up tab — aligned with content column */}
+      <div className="fixed bottom-14 md:bottom-0 left-0 right-0 md:left-56 z-40 flex justify-center pointer-events-none">
+        <div className="w-full max-w-2xl flex justify-center">
+          <button
+            onClick={() => setDrawerOpen(true)}
+            className="pointer-events-auto flex items-center gap-2 bg-card border border-border border-b-0 rounded-t-xl px-6 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-hover transition-colors shadow-lg"
+          >
+            <Backpack size={15} strokeWidth={2} />
+            Bag
+            <ChevronUp size={13} className="text-text-muted" />
+          </button>
+        </div>
       </div>
 
       <InventoryDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />

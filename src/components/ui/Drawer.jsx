@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
-import { X, ChevronDown } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 
-export default function Drawer({ open, onClose, title, children, trigger }) {
+export default function Drawer({ open, onClose, title, children }) {
   useEffect(() => {
     if (open) document.body.style.overflow = 'hidden'
     else document.body.style.overflow = ''
@@ -10,9 +10,6 @@ export default function Drawer({ open, onClose, title, children, trigger }) {
 
   return (
     <>
-      {/* Pull-up trigger tab — always visible at bottom */}
-      {trigger}
-
       {/* Backdrop */}
       {open && (
         <div
@@ -21,24 +18,27 @@ export default function Drawer({ open, onClose, title, children, trigger }) {
         />
       )}
 
-      {/* Sheet */}
-      <div
-        className={`fixed left-0 right-0 bottom-0 z-50 flex flex-col bg-surface border-t border-border rounded-t-xl shadow-2xl transition-transform duration-300 ease-out
-          ${open ? 'translate-y-0' : 'translate-y-full'}`}
-        style={{ maxHeight: '70vh' }}
-      >
-        {/* Drag handle + header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
-          <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-8 h-1 bg-border rounded-full" />
-          <h2 className="font-semibold text-text-primary">{title}</h2>
-          <button onClick={onClose} className="text-text-muted hover:text-text-primary transition-colors">
-            <ChevronDown size={18} />
-          </button>
-        </div>
+      {/* Positioner — offset by sidebar on desktop, full-width on mobile */}
+      <div className="fixed bottom-0 left-0 right-0 md:left-56 z-50 flex justify-center pointer-events-none">
+        {/* Sheet */}
+        <div
+          className={`w-full max-w-2xl pointer-events-auto flex flex-col bg-surface border-t md:border-x border-border rounded-t-xl shadow-2xl transition-transform duration-300 ease-out
+            ${open ? 'translate-y-0' : 'translate-y-full'}`}
+          style={{ maxHeight: '70vh' }}
+        >
+          {/* Drag handle + header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
+            <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-8 h-1 bg-border rounded-full" />
+            <h2 className="font-semibold text-text-primary">{title}</h2>
+            <button onClick={onClose} className="text-text-muted hover:text-text-primary transition-colors">
+              <ChevronDown size={18} />
+            </button>
+          </div>
 
-        {/* Scrollable content */}
-        <div className="overflow-y-auto flex-1 px-5 py-4">
-          {children}
+          {/* Scrollable content */}
+          <div className="overflow-y-auto flex-1 px-5 py-4">
+            {children}
+          </div>
         </div>
       </div>
     </>

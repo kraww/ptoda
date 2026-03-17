@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, Link } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import AdminNav from './components/AdminNav'
 import AdminDashboard from './pages/AdminDashboard'
@@ -23,7 +24,17 @@ export default function AdminApp() {
     <div className="min-h-screen flex flex-col">
       <div className="bg-sidebar border-b border-border px-4 py-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <h1 className="font-bold text-text-primary">T'poda <span className="text-text-muted font-normal">Admin</span></h1>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/pet"
+              className="flex items-center gap-1.5 text-text-muted hover:text-text-primary transition-colors text-sm"
+            >
+              <ArrowLeft size={14} />
+              Back to site
+            </Link>
+            <span className="text-border">|</span>
+            <h1 className="font-bold text-text-primary">T'poda <span className="text-text-muted font-normal">Admin</span></h1>
+          </div>
           <span className="text-text-muted text-xs">{user.email}</span>
         </div>
       </div>

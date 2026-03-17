@@ -16,6 +16,27 @@ const THEME_META = {
   forest:  { label: 'Forest',  bg: '#0d1410', surface: '#182118', text: '#e8f0e8' },
 }
 
+const THEME_VARS = {
+  dark:    { bg: '#0e0e10', sidebar: '#141416', surface: '#1c1c1f', card: '#242428', hover: '#2e2e33', border: '#2e2e33', textPrimary: '#f2f3f5', textSecondary: '#a1a1aa', textMuted: '#52525b' },
+  light:   { bg: '#f0f0f3', sidebar: '#e8e8ec', surface: '#ffffff', card: '#f5f5f8', hover: '#ebebef', border: '#dddde3', textPrimary: '#18181b', textSecondary: '#52525b', textMuted: '#a1a1aa' },
+  neutral: { bg: '#1a1815', sidebar: '#201e1a', surface: '#28251f', card: '#302c25', hover: '#3a352c', border: '#3a352c', textPrimary: '#f0ebe0', textSecondary: '#a89880', textMuted: '#6b5e4a' },
+  forest:  { bg: '#0d1410', sidebar: '#111a14', surface: '#182118', card: '#1e2a1e', hover: '#263426', border: '#2a3a2a', textPrimary: '#e8f0e8', textSecondary: '#8aaa8a', textMuted: '#4a6a4a' },
+}
+
+function applyThemeVars(key) {
+  const t = THEME_VARS[key] ?? THEME_VARS.dark
+  const r = document.documentElement
+  r.style.setProperty('--color-bg',             t.bg)
+  r.style.setProperty('--color-sidebar',        t.sidebar)
+  r.style.setProperty('--color-surface',        t.surface)
+  r.style.setProperty('--color-card',           t.card)
+  r.style.setProperty('--color-hover',          t.hover)
+  r.style.setProperty('--color-border',         t.border)
+  r.style.setProperty('--color-text-primary',   t.textPrimary)
+  r.style.setProperty('--color-text-secondary', t.textSecondary)
+  r.style.setProperty('--color-text-muted',     t.textMuted)
+}
+
 function AvatarDisplay({ profile, size = 56 }) {
   const imgUrl = profile?.avatar?.image_url
   if (imgUrl) return <img src={imgUrl} alt="avatar" className="rounded-full object-cover shrink-0 border border-border" style={{ width: size, height: size }} />
@@ -76,7 +97,7 @@ export default function ProfilePage() {
   }
 
   async function selectTheme(theme) {
-    // Optimistic update — loadProfile will confirm
+    applyThemeVars(theme)  // instant visual update
     await supabase.from('profiles').update({ active_theme: theme }).eq('id', user.id)
     loadProfile(user.id)
   }

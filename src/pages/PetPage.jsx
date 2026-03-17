@@ -9,7 +9,7 @@ import {
   STAGE_EGG, STAGE_BABY, STAGE_EVOLVED,
   HATCH_ACTION_THRESHOLD, EVOLVE_ACTION_THRESHOLD,
   COINS_PER_ACTION, STAT_MAX, STAT_MIN, DEFAULT_RECOVERY_WINDOW_HOURS,
-  SLEEP_DURATION_HOURS,
+  SLEEP_DURATION_HOURS, ACTION_COOLDOWN_HOURS,
 } from '../lib/constants'
 import PetSprite from '../components/pet/PetSprite'
 import StatPanel from '../components/pet/StatPanel'
@@ -34,6 +34,20 @@ function getSickTimeLeft(sickSince, decayConfig) {
   const h = Math.floor(msLeft / 3600000)
   const m = Math.floor((msLeft % 3600000) / 60000)
   return h > 0 ? `${h}h ${m}m remaining` : `${m}m remaining`
+}
+
+function getCooldownMs(actionId, actionLastUsed) {
+  const lastUsed = actionLastUsed?.[actionId]
+  if (!lastUsed) return 0
+  return Math.max(0, new Date(lastUsed).getTime() + ACTION_COOLDOWN_HOURS * 3600000 - Date.now())
+}
+
+function formatCooldown(ms) {
+  if (ms <= 0) return null
+  const h = Math.floor(ms / 3600000)
+  const m = Math.floor((ms % 3600000) / 60000)
+  if (h > 0) return `${h}h ${m}m`
+  return m > 0 ? `${m}m` : '<1m'
 }
 
 function getSleepProgress(sleepStartedAt) {
@@ -85,14 +99,16 @@ export default function PetPage() {
   async function doCareAction(action) {
     if (acting || pet.is_sick || pet.is_sleeping) return
     if ((pet[action.stat] ?? 0) >= STAT_MAX) return
+    if (getCooldownMs(action.id, pet.action_last_used) > 0) return
     setActing(true)
     try {
       const stat    = action.stat
       const newVal  = Math.min(STAT_MAX, (pet[stat] ?? 0) + 20)
-      const newCounts = { ...pet.action_counts, [action.id]: (pet.action_counts?.[action.id] ?? 0) + 1 }
+      const newCounts   = { ...pet.action_counts,   [action.id]: (pet.action_counts?.[action.id]   ?? 0) + 1 }
+      const newLastUsed = { ...pet.action_last_used, [action.id]: new Date().toISOString() }
 
-      const updates = { [stat]: newVal, action_counts: newCounts, last_stat_update: new Date().toISOString() }
-      const localUpdates = { [stat]: newVal, action_counts: newCounts }
+      const updates      = { [stat]: newVal, action_counts: newCounts, action_last_used: newLastUsed, last_stat_update: new Date().toISOString() }
+      const localUpdates = { [stat]: newVal, action_counts: newCounts, action_last_used: newLastUsed }
 
       // Apply side effects (e.g. feed dirties, play tires)
       if (action.sideEffect) {
@@ -299,20 +315,25 @@ export default function PetPage() {
       <div>
         <p className="section-label mb-3">Care</p>
         <div className="grid grid-cols-2 gap-2">
-          {CARE_ACTIONS.map(({ id, label, Icon, stat, accent }) => {
-            const isCapped = (pet[stat] ?? 0) >= STAT_MAX
-            const isDisabled = acting || pet.is_sick || pet.is_sleeping || isCapped
+          {CARE_ACTIONS.map(({ id, label, Icon, stat, accent, sideEffect }) => {
+            const isCapped     = (pet[stat] ?? 0) >= STAT_MAX
+            const cooldownMs   = getCooldownMs(id, pet.action_last_used)
+            const onCooldown   = cooldownMs > 0
+            const isDisabled   = acting || pet.is_sick || pet.is_sleeping || isCapped || onCooldown
+            const hint = onCooldown           ? formatCooldown(cooldownMs)
+                       : isCapped             ? 'full'
+                       : null
             return (
               <button
                 key={id}
-                onClick={() => doCareAction({ id, label, stat, sideEffect: CARE_ACTIONS.find(a => a.id === id).sideEffect })}
+                onClick={() => doCareAction({ id, label, stat, sideEffect })}
                 disabled={isDisabled}
                 className={`flex items-center gap-3 px-4 py-3.5 bg-surface border rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${accent}`}
               >
                 <Icon size={16} strokeWidth={2} />
                 <span className="text-sm font-medium text-text-primary">{label}</span>
-                {isCapped && !pet.is_sick && !pet.is_sleeping && (
-                  <span className="ml-auto text-2xs text-text-muted">full</span>
+                {hint && !pet.is_sick && !pet.is_sleeping && (
+                  <span className="ml-auto text-2xs text-text-muted">{hint}</span>
                 )}
               </button>
             )

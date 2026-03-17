@@ -42,3 +42,6 @@ export const COINS_PER_ACTION = 2
 
 // Sleep mechanic
 export const SLEEP_DURATION_HOURS = 8   // Full rest takes 8 hours
+
+// How long before a care action can be repeated (hours)
+export const ACTION_COOLDOWN_HOURS = 2

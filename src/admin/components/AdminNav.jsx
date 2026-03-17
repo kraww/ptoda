@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Dna, Package, Clock, Users, Newspaper, Trophy, UserCircle } from 'lucide-react'
+import { LayoutDashboard, Dna, Package, Clock, Users, Newspaper, Trophy, UserCircle, Gamepad2 } from 'lucide-react'
 
 const LINKS = [
   { to: '/admin',              label: 'Dashboard',    Icon: LayoutDashboard, end: true },
@@ -10,6 +10,7 @@ const LINKS = [
   { to: '/admin/users',        label: 'Users',        Icon: Users },
   { to: '/admin/achievements', label: 'Achievements', Icon: Trophy },
   { to: '/admin/avatars',      label: 'Avatars',      Icon: UserCircle },
+  { to: '/admin/games',        label: 'Games',        Icon: Gamepad2 },
 ]
 
 export default function AdminNav() {

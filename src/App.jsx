@@ -16,6 +16,10 @@ import ProfilePage       from './pages/ProfilePage'
 import PublicProfilePage from './pages/PublicProfilePage'
 import NotFoundPage      from './pages/NotFoundPage'
 import AdminApp       from './admin/AdminApp'
+import GamesPage         from './pages/GamesPage'
+import MeterStopperGame  from './pages/games/MeterStopperGame'
+import SimonGame         from './pages/games/SimonGame'
+import LuckyRollGame     from './pages/games/LuckyRollGame'
 import LoadingSpinner from './components/ui/LoadingSpinner'
 
 function AppRoutes() {
@@ -25,7 +29,7 @@ function AppRoutes() {
     const THEMES = {
       dark:    { bg: '14 14 16',    sidebar: '20 20 22',   surface: '28 28 31',  card: '36 36 40',  hover: '46 46 51',   border: '46 46 51',   textPrimary: '242 243 245', textSecondary: '161 161 170', textMuted: '82 82 91'   },
       light:   { bg: '240 240 243', sidebar: '232 232 236', surface: '255 255 255', card: '245 245 248', hover: '235 235 239', border: '221 221 227', textPrimary: '24 24 27',   textSecondary: '82 82 91',    textMuted: '161 161 170' },
-      neutral: { bg: '26 26 29',    sidebar: '34 34 37',   surface: '42 42 46',  card: '50 50 54',  hover: '62 62 68',   border: '62 62 68',   textPrimary: '232 232 237', textSecondary: '152 152 168', textMuted: '90 90 110'  },
+      neutral: { bg: '42 42 48',    sidebar: '50 50 58',   surface: '60 60 68',  card: '70 70 80',  hover: '82 82 94',   border: '82 82 94',   textPrimary: '232 232 240', textSecondary: '176 176 192', textMuted: '120 120 144' },
       forest:  { bg: '13 20 16',    sidebar: '17 26 20',   surface: '24 33 24',  card: '30 42 30',  hover: '38 52 38',   border: '42 58 42',   textPrimary: '232 240 232', textSecondary: '138 170 138', textMuted: '74 106 74'  },
     }
     const t = THEMES[profile?.active_theme ?? 'dark'] ?? THEMES.dark
@@ -62,6 +66,10 @@ function AppRoutes() {
       <Route path="/pet"       element={user ? <AppShell><PetPage /></AppShell>       : <Navigate to="/login" replace />} />
       <Route path="/shop"      element={user ? <AppShell><ShopPage /></AppShell>      : <Navigate to="/login" replace />} />
       <Route path="/inventory" element={user ? <AppShell><InventoryPage /></AppShell> : <Navigate to="/login" replace />} />
+      <Route path="/games"               element={user ? <AppShell><GamesPage /></AppShell>           : <Navigate to="/login" replace />} />
+      <Route path="/games/meter-stopper" element={user ? <AppShell><MeterStopperGame /></AppShell>    : <Navigate to="/login" replace />} />
+      <Route path="/games/simon"         element={user ? <AppShell><SimonGame /></AppShell>           : <Navigate to="/login" replace />} />
+      <Route path="/games/lucky-roll"    element={user ? <AppShell><LuckyRollGame /></AppShell>       : <Navigate to="/login" replace />} />
       <Route path="/profile"   element={user ? <AppShell><ProfilePage /></AppShell>   : <Navigate to="/login" replace />} />
 
       {/* Public profiles — no login required */}

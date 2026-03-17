@@ -1,12 +1,13 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, ShoppingBag, User, LogOut, Shield, Newspaper } from 'lucide-react'
+import { Home, ShoppingBag, User, LogOut, Shield, Newspaper, Gamepad2 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 
 const NAV = [
-  { to: '/pet',    label: 'Home',  Icon: Home },
-  { to: '/shop',   label: 'Shop',  Icon: ShoppingBag },
-  { to: '/news',   label: 'News',  Icon: Newspaper },
-  { to: '/profile',label: 'Profile',Icon: User },
+  { to: '/pet',    label: 'Home',    Icon: Home },
+  { to: '/games',  label: 'Games',   Icon: Gamepad2 },
+  { to: '/shop',   label: 'Shop',    Icon: ShoppingBag },
+  { to: '/news',   label: 'News',    Icon: Newspaper },
+  { to: '/profile',label: 'Profile', Icon: User },
 ]
 
 const ADMIN_ID = 'a9a09202-6f21-4b9a-bb20-d0d38c49d9d7'

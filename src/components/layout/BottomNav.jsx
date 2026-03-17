@@ -1,10 +1,10 @@
 import { NavLink } from 'react-router-dom'
-import { Home, ShoppingBag, Newspaper, User } from 'lucide-react'
+import { Home, ShoppingBag, Newspaper, User, Gamepad2 } from 'lucide-react'
 
 const LINKS = [
   { to: '/pet',    label: 'Home',   Icon: Home },
+  { to: '/games',  label: 'Games',  Icon: Gamepad2 },
   { to: '/shop',   label: 'Shop',   Icon: ShoppingBag },
-  { to: '/news',   label: 'News',   Icon: Newspaper },
   { to: '/profile',label: 'Me',     Icon: User },
 ]
 

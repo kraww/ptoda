@@ -69,6 +69,7 @@ export default function PetPage() {
   const [acting, setActing] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [confirmRelease, setConfirmRelease] = useState(false)
+  const [confirmAbandon, setConfirmAbandon] = useState(false)
 
   if (loading) return <LoadingSpinner message="Loading your pet…" />
 
@@ -100,6 +101,15 @@ export default function PetPage() {
   const releaseMinDays = decayConfig?.find(r => r.release_min_days != null)?.release_min_days ?? 5
   const canRelease = pet.stage === STAGE_EVOLVED && !pet.is_released && pet.evolved_at
     && (Date.now() - new Date(pet.evolved_at).getTime()) >= releaseMinDays * 86400000
+
+  const abandonCooldownMs = profile?.last_abandoned_at
+    ? Math.max(0, new Date(profile.last_abandoned_at).getTime() + 86400000 - Date.now())
+    : 0
+  const abandonCooldownLabel = abandonCooldownMs > 0 ? (() => {
+    const h = Math.floor(abandonCooldownMs / 3600000)
+    const m = Math.floor((abandonCooldownMs % 3600000) / 60000)
+    return h > 0 ? `${h}h ${m}m` : `${m}m`
+  })() : null
 
   async function doCareAction(action) {
     if (acting || pet.is_sick || pet.is_sleeping) return
@@ -223,6 +233,20 @@ export default function PetPage() {
       await reload()
       setToast('Your egg hatched!')
       award(supabase, user.id, 'first_hatch')
+    } catch { setToast('Something went wrong') }
+    finally { setActing(false) }
+  }
+
+  async function doAbandon() {
+    setActing(true)
+    setConfirmAbandon(false)
+    try {
+      const now = new Date().toISOString()
+      await supabase.from('pets').update({ is_alive: false, is_released: false }).eq('id', pet.id)
+      await supabase.from('profiles').update({ last_abandoned_at: now }).eq('id', user.id)
+      await loadProfile(user.id)
+      await reload()
+      setToast(`${pet.name} was abandoned`)
     } catch { setToast('Something went wrong') }
     finally { setActing(false) }
   }
@@ -407,6 +431,32 @@ export default function PetPage() {
           })()}
         </div>
       </div>}
+
+      {/* Abandon */}
+      <div className="flex justify-center pt-2 pb-8">
+        {!confirmAbandon ? (
+          <button
+            onClick={() => setConfirmAbandon(true)}
+            disabled={!!abandonCooldownLabel}
+            className="text-xs text-text-muted hover:text-danger transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {abandonCooldownLabel ? `Abandon on cooldown (${abandonCooldownLabel})` : 'Abandon pet'}
+          </button>
+        ) : (
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-xs text-danger font-medium">This counts as a failed pet and can't be undone.</p>
+            <div className="flex gap-3">
+              <button onClick={doAbandon} disabled={acting}
+                className="text-xs text-danger hover:underline font-semibold disabled:opacity-40">
+                Yes, abandon
+              </button>
+              <button onClick={() => setConfirmAbandon(false)} className="text-xs text-text-muted hover:text-text-primary">
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Bag pull-up tab — aligned with content column */}
       <div className="fixed bottom-14 md:bottom-0 left-0 right-0 md:left-56 z-40 flex justify-center pointer-events-none">

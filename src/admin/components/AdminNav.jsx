@@ -15,25 +15,23 @@ const LINKS = [
 
 export default function AdminNav() {
   return (
-    <nav className="bg-sidebar border-b border-border">
-      <div className="flex gap-0 overflow-x-auto max-w-4xl mx-auto px-4">
-        {LINKS.map(({ to, label, Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            className={({ isActive }) =>
-              `flex items-center gap-2 px-4 py-3.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors
-              ${isActive
-                ? 'border-accent text-accent-light'
-                : 'border-transparent text-text-muted hover:text-text-secondary'}`
-            }
-          >
-            <Icon size={14} strokeWidth={2} />
-            {label}
-          </NavLink>
-        ))}
-      </div>
+    <nav className="flex flex-col gap-0.5 p-2">
+      {LINKS.map(({ to, label, Icon, end }) => (
+        <NavLink
+          key={to}
+          to={to}
+          end={end}
+          className={({ isActive }) =>
+            `flex items-center gap-2.5 px-3 py-2 rounded text-sm font-medium transition-colors
+            ${isActive
+              ? 'bg-accent/10 text-accent-light'
+              : 'text-text-muted hover:text-text-primary hover:bg-hover'}`
+          }
+        >
+          <Icon size={15} strokeWidth={2} />
+          {label}
+        </NavLink>
+      ))}
     </nav>
   )
 }

@@ -24,25 +24,27 @@ export default function AdminApp() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="bg-sidebar border-b border-border px-4 py-3">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              to="/pet"
-              className="flex items-center gap-1.5 text-text-muted hover:text-text-primary transition-colors text-sm"
-            >
-              <ArrowLeft size={14} />
-              Back to site
-            </Link>
-            <span className="text-border">|</span>
-            <h1 className="font-bold text-text-primary">T'poda <span className="text-text-muted font-normal">Admin</span></h1>
-          </div>
-          <span className="text-text-muted text-xs">{user.email}</span>
+    <div className="min-h-screen flex">
+      {/* Sidebar */}
+      <div className="w-48 shrink-0 bg-sidebar border-r border-border flex flex-col min-h-screen">
+        <div className="px-4 py-4 border-b border-border">
+          <h1 className="font-bold text-text-primary text-sm">T'poda <span className="text-text-muted font-normal">Admin</span></h1>
+          <Link
+            to="/pet"
+            className="flex items-center gap-1 text-text-muted hover:text-text-primary transition-colors text-xs mt-2"
+          >
+            <ArrowLeft size={12} />
+            Back to site
+          </Link>
+        </div>
+        <AdminNav />
+        <div className="mt-auto px-4 py-3 border-t border-border">
+          <p className="text-2xs text-text-muted truncate">{user.email}</p>
         </div>
       </div>
-      <AdminNav />
-      <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-6 bg-bg min-h-screen">
+
+      {/* Main content */}
+      <main className="flex-1 px-6 py-6 bg-bg min-h-screen overflow-y-auto">
         <Routes>
           <Route index element={<AdminDashboard />} />
           <Route path="species" element={<AdminSpecies />} />

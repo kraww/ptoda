@@ -8,6 +8,7 @@ const DEFAULTS = { hunger: 5, happiness: 3, cleanliness: 2, energy: 4 }
 export default function AdminDecay() {
   const [rates, setRates] = useState({})
   const [recoveryWindow, setRecoveryWindow] = useState(48)
+  const [releaseMinDays, setReleaseMinDays] = useState(5)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState(null)
 
@@ -17,6 +18,7 @@ export default function AdminDecay() {
       for (const row of (data ?? [])) {
         map[row.stat_name] = { id: row.id, value: row.points_per_hour }
         if (row.recovery_window_hours != null) setRecoveryWindow(row.recovery_window_hours)
+        if (row.release_min_days != null) setReleaseMinDays(row.release_min_days)
       }
       setRates(map)
     })
@@ -33,13 +35,15 @@ export default function AdminDecay() {
           await supabase.from('decay_config').update({
             points_per_hour: value,
             recovery_window_hours: Number(recoveryWindow),
+            release_min_days: Number(releaseMinDays),
             updated_at: new Date().toISOString()
           }).eq('id', existing.id)
         } else {
           await supabase.from('decay_config').insert({
             stat_name: stat,
             points_per_hour: value,
-            recovery_window_hours: Number(recoveryWindow)
+            recovery_window_hours: Number(recoveryWindow),
+            release_min_days: Number(releaseMinDays),
           })
         }
       }
@@ -96,6 +100,22 @@ export default function AdminDecay() {
           <p className="text-slate-600 text-xs mt-1">
             Currently: {recoveryWindow} hours (~{Math.round(recoveryWindow / 24 * 10) / 10} days)
           </p>
+        </div>
+      </div>
+
+      <div className="border-t border-slate-800 pt-5 flex flex-col gap-1">
+        <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">Release Cooldown</h3>
+        <p className="text-slate-500 text-xs mb-2">How many days a pet must be evolved before the Release button appears.</p>
+        <div className="flex flex-col gap-1">
+          <label className="text-sm text-slate-300">Minimum days evolved</label>
+          <input
+            type="number"
+            min={0}
+            step={1}
+            value={releaseMinDays}
+            onChange={e => setReleaseMinDays(e.target.value)}
+            className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm w-full focus:outline-none focus:border-primary-500"
+          />
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Utensils, Gamepad2, Sparkles, Moon, Pill, AlertTriangle, Egg, Backpack, ChevronUp, Sun } from 'lucide-react'
+import { Utensils, Gamepad2, Sparkles, Moon, Pill, AlertTriangle, Egg, Backpack, ChevronUp, Sun, Bird } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { usePet } from '../context/PetContext'
@@ -68,6 +68,7 @@ export default function PetPage() {
   const [toast, setToast] = useState(null)
   const [acting, setActing] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [confirmRelease, setConfirmRelease] = useState(false)
 
   if (loading) return <LoadingSpinner message="Loading your pet…" />
 
@@ -96,6 +97,9 @@ export default function PetPage() {
   const canEvolve = pet.stage === STAGE_BABY && totalActions >= EVOLVE_ACTION_THRESHOLD
   const timeLeft  = pet.is_sick ? getSickTimeLeft(pet.sick_since, decayConfig) : null
   const sleepProgress = pet.is_sleeping ? getSleepProgress(pet.sleep_started_at) : null
+  const releaseMinDays = decayConfig?.find(r => r.release_min_days != null)?.release_min_days ?? 5
+  const canRelease = pet.stage === STAGE_EVOLVED && !pet.is_released && pet.evolved_at
+    && (Date.now() - new Date(pet.evolved_at).getTime()) >= releaseMinDays * 86400000
 
   async function doCareAction(action) {
     if (acting || pet.is_sick || pet.is_sleeping) return
@@ -223,6 +227,19 @@ export default function PetPage() {
     finally { setActing(false) }
   }
 
+  async function doRelease() {
+    setActing(true)
+    setConfirmRelease(false)
+    try {
+      await supabase.from('pets').update({
+        is_released: true, released_at: new Date().toISOString(), is_alive: false,
+      }).eq('id', pet.id)
+      await reload()
+      setToast(`${pet.name} has been released`)
+    } catch { setToast('Something went wrong') }
+    finally { setActing(false) }
+  }
+
   async function evolve() {
     if (acting) return
     setActing(true)
@@ -302,6 +319,23 @@ export default function PetPage() {
             {pet.stage === STAGE_EVOLVED && pet.evolution_form ? pet.evolution_form : pet.stage}
           </span>
         </div>
+
+        {/* Release button */}
+        {canRelease && !confirmRelease && (
+          <button
+            onClick={() => setConfirmRelease(true)}
+            className="absolute top-3 left-3 flex items-center gap-1 text-2xs text-text-muted hover:text-accent-light bg-card border border-border px-2 py-1 rounded transition-colors"
+          >
+            <Bird size={11} /> Release
+          </button>
+        )}
+        {canRelease && confirmRelease && (
+          <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-card border border-border px-2 py-1 rounded">
+            <span className="text-2xs text-text-muted">Sure?</span>
+            <button onClick={doRelease} disabled={acting} className="text-2xs text-accent-light hover:text-accent font-medium transition-colors">Yes</button>
+            <button onClick={() => setConfirmRelease(false)} className="text-2xs text-text-muted hover:text-text-primary transition-colors">No</button>
+          </div>
+        )}
       </div>
 
       {/* Stage prompts */}

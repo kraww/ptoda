@@ -20,7 +20,8 @@ export default function PublicProfilePage() {
   const { username } = useParams()
   const [profile, setProfile] = useState(null)
   const [currentPet, setCurrentPet] = useState(null)
-  const [pastEvolutions, setPastEvolutions] = useState([])
+  const [releasedPets, setReleasedPets] = useState([])
+  const [failedCount, setFailedCount] = useState(0)
   const [achievements, setAchievements] = useState([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
@@ -45,7 +46,7 @@ export default function PublicProfilePage() {
       }
       setProfile({ ...prof, avatarUrl })
 
-      const [{ data: pet }, { data: past }] = await Promise.all([
+      const [{ data: pet }, { data: released }, { count: failed }] = await Promise.all([
         supabase
           .from('pets')
           .select('*, species:species_id(*)')
@@ -56,15 +57,21 @@ export default function PublicProfilePage() {
           .maybeSingle(),
         supabase
           .from('pets')
-          .select('id, name, stage, evolution_form, evolved_at, species:species_id(*)')
+          .select('id, name, evolution_form, species:species_id(*)')
           .eq('user_id', prof.id)
-          .eq('stage', 'evolved')
+          .eq('is_released', true)
+          .order('released_at', { ascending: false }),
+        supabase
+          .from('pets')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', prof.id)
           .eq('is_alive', false)
-          .order('evolved_at', { ascending: false }),
+          .eq('is_released', false),
       ])
 
       setCurrentPet(pet ?? null)
-      setPastEvolutions(past ?? [])
+      setReleasedPets(released ?? [])
+      setFailedCount(failed ?? 0)
       const allAch = await loadAchievements(supabase, prof.id)
       setAchievements(allAch.filter(a => a.earned))
       setLoading(false)
@@ -111,16 +118,20 @@ export default function PublicProfilePage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         <div className="bg-surface border border-border rounded-lg px-4 py-3 text-center">
-          <p className="text-lg font-bold text-text-primary">{pastEvolutions.length}</p>
-          <p className="text-2xs text-text-muted mt-0.5">Past Evolutions</p>
+          <p className="text-lg font-bold text-text-primary">{releasedPets.length}</p>
+          <p className="text-2xs text-text-muted mt-0.5">Released</p>
         </div>
         <div className="bg-surface border border-border rounded-lg px-4 py-3 text-center">
           <p className="text-lg font-bold text-text-primary capitalize">
             {currentPet ? (currentPet.evolution_form ?? currentPet.stage) : '—'}
           </p>
           <p className="text-2xs text-text-muted mt-0.5">Current Stage</p>
+        </div>
+        <div className="bg-surface border border-border rounded-lg px-4 py-3 text-center">
+          <p className="text-lg font-bold text-text-primary">{failedCount}</p>
+          <p className="text-2xs text-text-muted mt-0.5">Lost</p>
         </div>
       </div>
 
@@ -140,23 +151,17 @@ export default function PublicProfilePage() {
         </div>
       )}
 
-      {/* Past evolutions */}
-      {pastEvolutions.length > 0 && (
-        <div className="bg-surface border border-border rounded-lg overflow-hidden">
-          <p className="section-label px-4 pt-4 pb-3">Past Evolutions</p>
-          <div className="flex flex-col">
-            {pastEvolutions.map((p, i) => (
-              <div key={p.id} className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? 'border-t border-border' : ''}`}>
-                <PetSprite pet={p} species={p.species} size={40} />
-                <div>
-                  <p className="text-sm font-medium text-text-primary">{p.name}</p>
-                  <p className="text-xs text-text-muted capitalize">{p.species?.name ?? '—'} · {p.evolution_form}</p>
+      {/* Released pets */}
+      {releasedPets.length > 0 && (
+        <div className="bg-surface border border-border rounded-lg p-4">
+          <p className="section-label mb-3">Released</p>
+          <div className="flex flex-wrap gap-3">
+            {releasedPets.map(p => (
+              <div key={p.id} className="flex flex-col items-center gap-1">
+                <div className="w-14 h-14 rounded-lg bg-card border border-border flex items-center justify-center">
+                  <PetSprite pet={p} species={p.species} size={48} />
                 </div>
-                {p.evolved_at && (
-                  <p className="ml-auto text-2xs text-text-muted">
-                    {new Date(p.evolved_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                  </p>
-                )}
+                <p className="text-2xs text-text-muted text-center truncate max-w-[56px]">{p.name}</p>
               </div>
             ))}
           </div>
@@ -184,7 +189,7 @@ export default function PublicProfilePage() {
         </div>
       )}
 
-      {pastEvolutions.length === 0 && !currentPet && (
+      {releasedPets.length === 0 && !currentPet && (
         <p className="text-center text-text-muted text-sm py-8">No pet activity yet</p>
       )}
 

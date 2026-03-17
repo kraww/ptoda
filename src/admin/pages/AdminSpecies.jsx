@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import Button from '../../components/ui/Button'
 
-const EMPTY = { name: '', description: '', egg_sprite: '', base_sprite: '', evolution_sprites: {}, is_available: true }
+const EMPTY = { name: '', description: '', egg_sprite: '', base_sprite: '', evolution_sprites: {}, is_available: true, availability_type: 'always', night_start: 22, night_end: 6, milestone_required: 1 }
 
 export default function AdminSpecies() {
   const [list, setList] = useState([])
@@ -27,6 +27,10 @@ export default function AdminSpecies() {
         base_sprite: form.base_sprite || null,
         evolution_sprites: form.evolution_sprites || {},
         is_available: form.is_available,
+        availability_type: form.availability_type ?? 'always',
+        night_start: Number(form.night_start ?? 22),
+        night_end: Number(form.night_end ?? 6),
+        milestone_required: Number(form.milestone_required ?? 1),
       }
       if (form.id) {
         await supabase.from('species').update(payload).eq('id', form.id)
@@ -65,6 +69,9 @@ export default function AdminSpecies() {
               <div className="text-slate-400 text-sm line-clamp-1">{sp.description}</div>
               <div className={`text-xs mt-1 ${sp.is_available ? 'text-green-400' : 'text-slate-600'}`}>
                 {sp.is_available ? 'Available' : 'Hidden'}
+                {sp.is_available && sp.availability_type && sp.availability_type !== 'always' && (
+                  <span className="ml-2 text-slate-400">· {sp.availability_type === 'night_only' ? `Night (${sp.night_start}–${sp.night_end}h)` : `Milestone (${sp.milestone_required} releases)`}</span>
+                )}
               </div>
             </div>
             <div className="flex gap-2 shrink-0">
@@ -119,6 +126,45 @@ export default function AdminSpecies() {
               <input type="checkbox" checked={form.is_available} onChange={e => setForm(f => ({ ...f, is_available: e.target.checked }))} />
               Available for adoption
             </label>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-sm text-slate-400">Availability type</label>
+              <select
+                value={form.availability_type ?? 'always'}
+                onChange={e => setForm(f => ({ ...f, availability_type: e.target.value }))}
+                className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary-500"
+              >
+                <option value="always">Always available</option>
+                <option value="night_only">Night only</option>
+                <option value="milestone">Milestone (release count)</option>
+              </select>
+            </div>
+
+            {form.availability_type === 'night_only' && (
+              <div className="flex gap-3">
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-sm text-slate-400">Night start (hour 0–23)</label>
+                  <input type="number" min={0} max={23} value={form.night_start ?? 22}
+                    onChange={e => setForm(f => ({ ...f, night_start: e.target.value }))}
+                    className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none" />
+                </div>
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="text-sm text-slate-400">Night end (hour 0–23)</label>
+                  <input type="number" min={0} max={23} value={form.night_end ?? 6}
+                    onChange={e => setForm(f => ({ ...f, night_end: e.target.value }))}
+                    className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none" />
+                </div>
+              </div>
+            )}
+
+            {form.availability_type === 'milestone' && (
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-slate-400">Releases required</label>
+                <input type="number" min={1} value={form.milestone_required ?? 1}
+                  onChange={e => setForm(f => ({ ...f, milestone_required: e.target.value }))}
+                  className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none" />
+              </div>
+            )}
 
             <div className="flex gap-3 pt-2">
               <Button onClick={save} disabled={saving || !form.name}>{saving ? 'Saving…' : 'Save'}</Button>

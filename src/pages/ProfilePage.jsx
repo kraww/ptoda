@@ -56,7 +56,8 @@ export default function ProfilePage() {
   const [editingBio, setEditingBio] = useState(false)
   const [bioValue, setBioValue] = useState('')
   const [saving, setSaving] = useState(false)
-  const [pastEvolutions, setPastEvolutions] = useState([])
+  const [releasedPets, setReleasedPets] = useState([])
+  const [failedCount, setFailedCount] = useState(0)
   const [achievements, setAchievements] = useState([])
   const [availableAvatars, setAvailableAvatars] = useState([])
   const [toast, setToast] = useState(null)
@@ -67,10 +68,15 @@ export default function ProfilePage() {
     if (!user) return
     supabase
       .from('pets')
-      .select('id, name, stage, evolution_form, evolved_at, species:species_id(*)')
-      .eq('user_id', user.id).eq('stage', 'evolved').eq('is_alive', false)
-      .order('evolved_at', { ascending: false })
-      .then(({ data }) => setPastEvolutions(data ?? []))
+      .select('id, name, evolution_form, species:species_id(*)')
+      .eq('user_id', user.id).eq('is_released', true)
+      .order('released_at', { ascending: false })
+      .then(({ data }) => setReleasedPets(data ?? []))
+    supabase
+      .from('pets')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id).eq('is_alive', false).eq('is_released', false)
+      .then(({ count }) => setFailedCount(count ?? 0))
     loadAchievements(supabase, user.id).then(setAchievements)
 
     // Load avatars: defaults + user unlocks
@@ -176,7 +182,7 @@ export default function ProfilePage() {
       <div className="grid grid-cols-3 gap-2">
         {[
           { label: 'Coins',    value: profile?.coins ?? 0 },
-          { label: 'Evolutions', value: pastEvolutions.length },
+          { label: 'Released', value: releasedPets.length },
           { label: 'Email',    value: user?.email?.split('@')[0] ?? '—' },
         ].map(({ label, value }) => (
           <div key={label} className="bg-surface border border-border rounded-lg px-3 py-3 text-center">
@@ -202,23 +208,20 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Past evolutions */}
-      {pastEvolutions.length > 0 && (
-        <div className="bg-surface border border-border rounded-lg overflow-hidden">
-          <p className="section-label px-4 pt-4 pb-3">Past Evolutions</p>
-          <div className="flex flex-col">
-            {pastEvolutions.map((p, i) => (
-              <div key={p.id} className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? 'border-t border-border' : ''}`}>
-                <PetSprite pet={p} species={p.species} size={36} />
-                <div>
-                  <p className="text-sm font-medium text-text-primary">{p.name}</p>
-                  <p className="text-xs text-text-muted capitalize">{p.species?.name ?? '—'} · {p.evolution_form}</p>
+      {/* Released pets */}
+      {releasedPets.length > 0 && (
+        <div className="bg-surface border border-border rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="section-label">Released</p>
+            {failedCount > 0 && <span className="text-2xs text-text-muted">{failedCount} lost</span>}
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {releasedPets.map(p => (
+              <div key={p.id} className="flex flex-col items-center gap-1">
+                <div className="w-14 h-14 rounded-lg bg-card border border-border flex items-center justify-center">
+                  <PetSprite pet={p} species={p.species} size={48} />
                 </div>
-                {p.evolved_at && (
-                  <p className="ml-auto text-2xs text-text-muted">
-                    {new Date(p.evolved_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                  </p>
-                )}
+                <p className="text-2xs text-text-muted text-center truncate max-w-[56px]">{p.name}</p>
               </div>
             ))}
           </div>

@@ -36,10 +36,10 @@ function getSickTimeLeft(sickSince, decayConfig) {
   return h > 0 ? `${h}h ${m}m remaining` : `${m}m remaining`
 }
 
-function getCooldownMs(actionId, actionLastUsed) {
+function getCooldownMs(actionId, actionLastUsed, cooldownHours = ACTION_COOLDOWN_HOURS) {
   const lastUsed = actionLastUsed?.[actionId]
   if (!lastUsed) return 0
-  return Math.max(0, new Date(lastUsed).getTime() + ACTION_COOLDOWN_HOURS * 3600000 - Date.now())
+  return Math.max(0, new Date(lastUsed).getTime() + cooldownHours * 3600000 - Date.now())
 }
 
 function formatCooldown(ms) {
@@ -132,14 +132,17 @@ export default function PetPage() {
 
   async function doSleep() {
     if (acting || pet.is_sick) return
+    if (getCooldownMs('sleep', pet.action_last_used, SLEEP_DURATION_HOURS) > 0) return
     setActing(true)
     try {
       const now = new Date().toISOString()
+      const newLastUsed = { ...pet.action_last_used, sleep: now }
       await supabase.from('pets').update({
-        is_sleeping: true, sleep_started_at: now, last_stat_update: now,
+        is_sleeping: true, sleep_started_at: now,
+        action_last_used: newLastUsed, last_stat_update: now,
       }).eq('id', pet.id)
       await supabase.from('care_log').insert({ pet_id: pet.id, action: 'sleep', coins_earned: 0 })
-      setPet(p => ({ ...p, is_sleeping: true, sleep_started_at: now }))
+      setPet(p => ({ ...p, is_sleeping: true, sleep_started_at: now, action_last_used: newLastUsed }))
       setToast(`${pet.name} is sleeping`)
     } catch { setToast('Something went wrong') }
     finally { setActing(false) }
@@ -339,18 +342,23 @@ export default function PetPage() {
             )
           })}
 
-          {/* Sleep button — full width, only when not already sleeping or sick */}
-          {!pet.is_sleeping && (
-            <button
-              onClick={doSleep}
-              disabled={acting || pet.is_sick}
-              className="col-span-2 flex items-center gap-3 px-4 py-3.5 bg-surface border text-green-400 border-green-400/20 hover:bg-green-400/5 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <Moon size={16} strokeWidth={2} />
-              <span className="text-sm font-medium text-text-primary">Sleep</span>
-              <span className="ml-auto text-2xs text-text-muted">restores energy over 8h</span>
-            </button>
-          )}
+          {/* Sleep — 4th slot in the grid */}
+          {(() => {
+            const sleepCooldownMs = getCooldownMs('sleep', pet.action_last_used, SLEEP_DURATION_HOURS)
+            const onCooldown = sleepCooldownMs > 0
+            const hint = pet.is_sleeping ? null : onCooldown ? formatCooldown(sleepCooldownMs) : null
+            return (
+              <button
+                onClick={doSleep}
+                disabled={acting || pet.is_sick || pet.is_sleeping || onCooldown}
+                className="flex items-center gap-3 px-4 py-3.5 bg-surface border text-green-400 border-green-400/20 hover:bg-green-400/5 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Moon size={16} strokeWidth={2} />
+                <span className="text-sm font-medium text-text-primary">Sleep</span>
+                {hint && <span className="ml-auto text-2xs text-text-muted">{hint}</span>}
+              </button>
+            )
+          })()}
         </div>
       </div>
 

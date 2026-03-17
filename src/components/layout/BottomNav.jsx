@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { Home, ShoppingBag, Package, User } from 'lucide-react'
+import { Home, ShoppingBag, Package, Newspaper, User } from 'lucide-react'
 
 const LINKS = [
-  { to: '/pet',       label: 'Home',      Icon: Home },
-  { to: '/shop',      label: 'Shop',      Icon: ShoppingBag },
-  { to: '/inventory', label: 'Inventory', Icon: Package },
-  { to: '/profile',   label: 'Profile',   Icon: User },
+  { to: '/pet',       label: 'Home',  Icon: Home },
+  { to: '/shop',      label: 'Shop',  Icon: ShoppingBag },
+  { to: '/inventory', label: 'Items', Icon: Package },
+  { to: '/news',      label: 'News',  Icon: Newspaper },
+  { to: '/profile',   label: 'Me',    Icon: User },
 ]
 
 export default function BottomNav() {
@@ -17,11 +18,11 @@ export default function BottomNav() {
             key={to}
             to={to}
             className={({ isActive }) =>
-              `flex flex-col items-center gap-1 px-4 py-1.5 transition-colors
+              `flex flex-col items-center gap-1 px-3 py-1.5 transition-colors
               ${isActive ? 'text-accent-light' : 'text-text-muted hover:text-text-secondary'}`
             }
           >
-            <Icon size={20} strokeWidth={2} />
+            <Icon size={18} strokeWidth={2} />
             <span className="text-2xs font-medium">{label}</span>
           </NavLink>
         ))}

@@ -6,6 +6,7 @@ import AdminSpecies from './pages/AdminSpecies'
 import AdminItems from './pages/AdminItems'
 import AdminDecay from './pages/AdminDecay'
 import AdminUsers from './pages/AdminUsers'
+import AdminPosts from './pages/AdminPosts'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 
 const ADMIN_IDS = ['a9a09202-6f21-4b9a-bb20-d0d38c49d9d7']
@@ -34,6 +35,7 @@ export default function AdminApp() {
           <Route path="items"   element={<AdminItems />} />
           <Route path="decay"   element={<AdminDecay />} />
           <Route path="users"   element={<AdminUsers />} />
+          <Route path="posts"   element={<AdminPosts />} />
         </Routes>
       </main>
     </div>

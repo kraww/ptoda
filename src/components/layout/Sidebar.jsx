@@ -1,11 +1,12 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, ShoppingBag, Package, User, LogOut, Shield } from 'lucide-react'
+import { Home, ShoppingBag, Package, User, LogOut, Shield, Newspaper } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 
 const NAV = [
   { to: '/pet',       label: 'Home',      Icon: Home },
   { to: '/shop',      label: 'Shop',      Icon: ShoppingBag },
   { to: '/inventory', label: 'Inventory', Icon: Package },
+  { to: '/news',      label: 'News',      Icon: Newspaper },
   { to: '/profile',   label: 'Profile',   Icon: User },
 ]
 

@@ -10,6 +10,7 @@ import AdoptPage      from './pages/AdoptPage'
 import PetPage        from './pages/PetPage'
 import ShopPage       from './pages/ShopPage'
 import InventoryPage  from './pages/InventoryPage'
+import NewsPage       from './pages/NewsPage'
 import ProfilePage    from './pages/ProfilePage'
 import NotFoundPage   from './pages/NotFoundPage'
 import AdminApp       from './admin/AdminApp'
@@ -26,6 +27,13 @@ function AppRoutes() {
       <Route path="/"         element={user ? <Navigate to="/pet" replace /> : <LandingPage />} />
       <Route path="/login"    element={user ? <Navigate to="/pet" replace /> : <LoginPage />} />
       <Route path="/register" element={user ? <Navigate to="/pet" replace /> : <RegisterPage />} />
+
+      {/* News is public — logged in or not */}
+      <Route path="/news" element={
+        user
+          ? <AppShell><NewsPage /></AppShell>
+          : <NewsPage />
+      } />
 
       {/* Protected routes */}
       <Route path="/adopt"     element={user ? <AppShell><AdoptPage /></AppShell>     : <Navigate to="/login" replace />} />

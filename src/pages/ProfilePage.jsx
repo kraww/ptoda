@@ -76,8 +76,9 @@ export default function ProfilePage() {
   }
 
   async function selectTheme(theme) {
+    // Optimistic update — loadProfile will confirm
     await supabase.from('profiles').update({ active_theme: theme }).eq('id', user.id)
-    await loadProfile(user.id)
+    loadProfile(user.id)
   }
 
   async function selectAvatar(avatarId) {

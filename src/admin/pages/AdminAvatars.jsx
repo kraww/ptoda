@@ -3,10 +3,11 @@ import { Plus, Trash2, Upload, Star } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
 async function uploadImage(file) {
-  const path = `${Date.now()}-${file.name.replace(/[^a-z0-9.]/gi, '_')}`
-  const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+  const ext = file.name.split('.').pop()
+  const path = `avatars/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+  const { error } = await supabase.storage.from('assets').upload(path, file, { upsert: true })
   if (error) throw error
-  return supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl
+  return supabase.storage.from('assets').getPublicUrl(path).data.publicUrl
 }
 
 export default function AdminAvatars() {

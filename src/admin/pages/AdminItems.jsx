@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import Button from '../../components/ui/Button'
+import ImageUpload from '../components/ImageUpload'
 
 const CATEGORIES = ['food', 'toy', 'soap', 'bed']
 const STATS = ['hunger', 'happiness', 'cleanliness', 'energy']
@@ -125,11 +126,8 @@ export default function AdminItems() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-sm text-slate-400">Sprite image URL</label>
-              <input value={form.sprite ?? ''} onChange={e => set('sprite', e.target.value)} placeholder="https://…"
-                className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary-500" />
-            </div>
+            <ImageUpload label="Item image" value={form.sprite} folder="items"
+              onChange={url => set('sprite', url)} />
 
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input type="checkbox" checked={form.is_available} onChange={e => set('is_available', e.target.checked)} />

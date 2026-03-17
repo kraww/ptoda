@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import Button from '../../components/ui/Button'
+import ImageUpload from '../components/ImageUpload'
+
+const EVOLUTION_FORMS = ['gourmet', 'wildling', 'pristine', 'dreamer']
 
 const EMPTY = { name: '', description: '', egg_sprite: '', base_sprite: '', evolution_sprites: {}, is_available: true, availability_type: 'always', night_start: 22, night_end: 6, milestone_required: 1 }
 
@@ -94,10 +97,8 @@ export default function AdminSpecies() {
             </div>
 
             {[
-              { field: 'name',        label: 'Name',           placeholder: 'e.g. Sproutling' },
-              { field: 'description', label: 'Description',    placeholder: 'Short flavor text' },
-              { field: 'egg_sprite',  label: 'Egg image URL',  placeholder: 'https://…' },
-              { field: 'base_sprite', label: 'Baby image URL', placeholder: 'https://…' },
+              { field: 'name',        label: 'Name',        placeholder: 'e.g. Sproutling', type: 'text' },
+              { field: 'description', label: 'Description', placeholder: 'Short flavor text', type: 'text' },
             ].map(({ field, label, placeholder }) => (
               <div key={field} className="flex flex-col gap-1">
                 <label className="text-sm text-slate-400">{label}</label>
@@ -110,16 +111,22 @@ export default function AdminSpecies() {
               </div>
             ))}
 
-            <div className="flex flex-col gap-1">
-              <label className="text-sm text-slate-400">Evolution sprite URLs (JSON)</label>
-              <textarea
-                rows={3}
-                value={JSON.stringify(form.evolution_sprites ?? {})}
-                onChange={e => { try { setForm(f => ({ ...f, evolution_sprites: JSON.parse(e.target.value) })) } catch (_) {} }}
-                placeholder={'{"gourmet":"https://…","wildling":"https://…"}'}
-                className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary-500"
-              />
-              <p className="text-xs text-slate-500">Keys: gourmet, wildling, pristine, dreamer</p>
+            <ImageUpload label="Egg image" value={form.egg_sprite} folder="species"
+              onChange={url => setForm(f => ({ ...f, egg_sprite: url }))} />
+
+            <ImageUpload label="Baby (hatchling) image" value={form.base_sprite} folder="species"
+              onChange={url => setForm(f => ({ ...f, base_sprite: url }))} />
+
+            <div className="flex flex-col gap-2">
+              <span className="text-sm text-slate-400">Evolution sprites</span>
+              {EVOLUTION_FORMS.map(evo => (
+                <ImageUpload key={evo} label={evo.charAt(0).toUpperCase() + evo.slice(1)}
+                  value={form.evolution_sprites?.[evo]}
+                  folder="species"
+                  size={44}
+                  onChange={url => setForm(f => ({ ...f, evolution_sprites: { ...f.evolution_sprites, [evo]: url } }))}
+                />
+              ))}
             </div>
 
             <label className="flex items-center gap-2 text-sm cursor-pointer">

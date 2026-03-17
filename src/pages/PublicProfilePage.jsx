@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, UserPlus, UserCheck, Clock } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 import { loadAchievements, getAchievementIcon } from '../lib/achievements'
 import PetSprite from '../components/pet/PetSprite'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
+import Button from '../components/ui/Button'
 
 function Avatar({ username, avatarUrl, size = 72 }) {
   if (avatarUrl) return <img src={avatarUrl} alt={username} className="rounded-full object-cover shrink-0 border border-border" style={{ width: size, height: size }} />
@@ -18,6 +20,7 @@ function Avatar({ username, avatarUrl, size = 72 }) {
 
 export default function PublicProfilePage() {
   const { username } = useParams()
+  const { user } = useAuth()
   const [profile, setProfile] = useState(null)
   const [currentPet, setCurrentPet] = useState(null)
   const [releasedPets, setReleasedPets] = useState([])
@@ -25,6 +28,8 @@ export default function PublicProfilePage() {
   const [achievements, setAchievements] = useState([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [friendship, setFriendship] = useState(null) // null=none, obj=exists
+  const [friendActing, setFriendActing] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -45,6 +50,15 @@ export default function PublicProfilePage() {
         avatarUrl = av?.image_url ?? null
       }
       setProfile({ ...prof, avatarUrl })
+
+      // Fetch friendship status if viewer is logged in and not viewing own profile
+      if (user && user.id !== prof.id) {
+        const { data: fs } = await supabase.from('friendships')
+          .select('id, status, requester_id, recipient_id')
+          .or(`and(requester_id.eq.${user.id},recipient_id.eq.${prof.id}),and(requester_id.eq.${prof.id},recipient_id.eq.${user.id})`)
+          .maybeSingle()
+        setFriendship(fs ?? null)
+      }
 
       const [{ data: pet }, { data: released }, { count: failed }] = await Promise.all([
         supabase
@@ -79,6 +93,30 @@ export default function PublicProfilePage() {
     load()
   }, [username])
 
+  async function sendRequest() {
+    if (!user || !profile) return
+    setFriendActing(true)
+    const { data } = await supabase.from('friendships').insert({ requester_id: user.id, recipient_id: profile.id }).select().single()
+    setFriendship(data)
+    setFriendActing(false)
+  }
+
+  async function acceptRequest() {
+    if (!friendship) return
+    setFriendActing(true)
+    await supabase.from('friendships').update({ status: 'accepted' }).eq('id', friendship.id)
+    setFriendship(f => ({ ...f, status: 'accepted' }))
+    setFriendActing(false)
+  }
+
+  async function removeFriendOrCancel() {
+    if (!friendship) return
+    setFriendActing(true)
+    await supabase.from('friendships').delete().eq('id', friendship.id)
+    setFriendship(null)
+    setFriendActing(false)
+  }
+
   if (loading) return <LoadingSpinner message="Loading profile…" />
 
   if (notFound) return (
@@ -104,10 +142,36 @@ export default function PublicProfilePage() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Avatar username={profile.username} avatarUrl={profile.avatarUrl} size={72} />
-        <div>
+        <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-text-primary">{profile.username}</h1>
           {memberSince && <p className="text-xs text-text-muted mt-0.5">Joined {memberSince}</p>}
         </div>
+        {user && user.id !== profile.id && (
+          <div className="shrink-0">
+            {!friendship && (
+              <Button size="sm" onClick={sendRequest} disabled={friendActing}>
+                <UserPlus size={13} /> Add Friend
+              </Button>
+            )}
+            {friendship?.status === 'pending' && friendship.requester_id === user.id && (
+              <button onClick={removeFriendOrCancel} disabled={friendActing}
+                className="flex items-center gap-1.5 text-xs text-text-muted hover:text-danger transition-colors">
+                <Clock size={13} /> Requested
+              </button>
+            )}
+            {friendship?.status === 'pending' && friendship.recipient_id === user.id && (
+              <Button size="sm" onClick={acceptRequest} disabled={friendActing}>
+                <UserCheck size={13} /> Accept
+              </Button>
+            )}
+            {friendship?.status === 'accepted' && (
+              <button onClick={removeFriendOrCancel} disabled={friendActing}
+                className="flex items-center gap-1.5 text-xs text-text-muted hover:text-danger transition-colors">
+                <UserCheck size={13} /> Friends
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Bio */}

@@ -1,19 +1,32 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, ShoppingBag, User, LogOut, Shield, Newspaper, Gamepad2 } from 'lucide-react'
+import { Home, ShoppingBag, User, LogOut, Shield, Newspaper, Gamepad2, Users, Mail } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import { useSocial } from '../../context/SocialContext'
 
 const NAV = [
   { to: '/pet',    label: 'Home',    Icon: Home },
   { to: '/games',  label: 'Games',   Icon: Gamepad2 },
   { to: '/shop',   label: 'Shop',    Icon: ShoppingBag },
   { to: '/news',   label: 'News',    Icon: Newspaper },
+  { to: '/social', label: 'Social',  Icon: Users, social: true },
   { to: '/profile',label: 'Profile', Icon: User },
 ]
 
 const ADMIN_ID = 'a9a09202-6f21-4b9a-bb20-d0d38c49d9d7'
 
+function NotifBubble({ count, Icon, color }) {
+  if (!count) return null
+  return (
+    <span className={`flex items-center gap-0.5 text-2xs font-bold px-1.5 py-0.5 rounded-full ${color}`}>
+      <Icon size={9} />
+      {count}
+    </span>
+  )
+}
+
 export default function Sidebar() {
   const { user, profile, signOut } = useAuth()
+  const { pendingCount, unreadCount } = useSocial()
   const navigate = useNavigate()
 
   async function handleSignOut() {
@@ -29,7 +42,7 @@ export default function Sidebar() {
 
       <nav className="flex-1 px-2 py-3 flex flex-col gap-0.5">
         <p className="section-label px-2 mb-2">Menu</p>
-        {NAV.map(({ to, label, Icon }) => (
+        {NAV.map(({ to, label, Icon, social }) => (
           <NavLink
             key={to}
             to={to}
@@ -39,7 +52,13 @@ export default function Sidebar() {
             }
           >
             <Icon size={16} strokeWidth={2} />
-            {label}
+            <span className="flex-1">{label}</span>
+            {social && (
+              <span className="flex items-center gap-1">
+                <NotifBubble count={pendingCount} Icon={Users} color="bg-accent/20 text-accent-light" />
+                <NotifBubble count={unreadCount}  Icon={Mail}  color="bg-warn/20 text-warn" />
+              </span>
+            )}
           </NavLink>
         ))}
 

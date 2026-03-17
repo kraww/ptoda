@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { PetProvider } from './context/PetContext'
+import { SocialProvider } from './context/SocialContext'
 
 import AppShell from './components/layout/AppShell'
 import LandingPage    from './pages/LandingPage'
@@ -17,6 +18,7 @@ import PublicProfilePage from './pages/PublicProfilePage'
 import NotFoundPage      from './pages/NotFoundPage'
 import AdminApp       from './admin/AdminApp'
 import GamesPage         from './pages/GamesPage'
+import SocialPage        from './pages/SocialPage'
 import MeterStopperGame  from './pages/games/MeterStopperGame'
 import SimonGame         from './pages/games/SimonGame'
 import LuckyRollGame     from './pages/games/LuckyRollGame'
@@ -66,6 +68,7 @@ function AppRoutes() {
       <Route path="/pet"       element={user ? <AppShell><PetPage /></AppShell>       : <Navigate to="/login" replace />} />
       <Route path="/shop"      element={user ? <AppShell><ShopPage /></AppShell>      : <Navigate to="/login" replace />} />
       <Route path="/inventory" element={user ? <AppShell><InventoryPage /></AppShell> : <Navigate to="/login" replace />} />
+      <Route path="/social"    element={user ? <AppShell><SocialPage /></AppShell>    : <Navigate to="/login" replace />} />
       <Route path="/games"               element={user ? <AppShell><GamesPage /></AppShell>           : <Navigate to="/login" replace />} />
       <Route path="/games/meter-stopper" element={user ? <AppShell><MeterStopperGame /></AppShell>    : <Navigate to="/login" replace />} />
       <Route path="/games/simon"         element={user ? <AppShell><SimonGame /></AppShell>           : <Navigate to="/login" replace />} />
@@ -88,7 +91,9 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <PetProvider>
-          <AppRoutes />
+          <SocialProvider>
+            <AppRoutes />
+          </SocialProvider>
         </PetProvider>
       </AuthProvider>
     </BrowserRouter>

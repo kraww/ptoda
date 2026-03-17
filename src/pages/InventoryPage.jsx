@@ -1,19 +1,24 @@
 import { useEffect, useState } from 'react'
-import { Package } from 'lucide-react'
+import { Package, Gift, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { usePet } from '../context/PetContext'
 import { STAT_MAX } from '../lib/constants'
 import Toast from '../components/ui/Toast'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
+import Button from '../components/ui/Button'
 
 export default function InventoryPage() {
   const { user } = useAuth()
   const { pet, setPet } = usePet()
   const [inventory, setInventory] = useState([])
+  const [friends, setFriends] = useState([])
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState(null)
   const [using, setUsing] = useState(null)
+  const [giftingInv, setGiftingInv] = useState(null)
+  const [giftFriendId, setGiftFriendId] = useState('')
+  const [gifting, setGifting] = useState(false)
 
   async function loadInventory() {
     const { data } = await supabase
@@ -25,7 +30,17 @@ export default function InventoryPage() {
     setLoading(false)
   }
 
-  useEffect(() => { loadInventory() }, [])
+  async function loadFriends() {
+    const { data } = await supabase
+      .from('friendships')
+      .select('requester_id, recipient_id, requester:requester_id(id, username), recipient:recipient_id(id, username)')
+      .or(`requester_id.eq.${user.id},recipient_id.eq.${user.id}`)
+      .eq('status', 'accepted')
+    const list = (data ?? []).map(f => f.requester_id === user.id ? f.recipient : f.requester)
+    setFriends(list)
+  }
+
+  useEffect(() => { loadInventory(); loadFriends() }, [])
 
   async function useItem(inv) {
     if (using || !pet) return
@@ -46,11 +61,38 @@ export default function InventoryPage() {
     finally { setUsing(null) }
   }
 
+  async function sendGift() {
+    if (!giftingInv || !giftFriendId) return
+    setGifting(true)
+    try {
+      const itemId = giftingInv.items.id
+      // Add to recipient's inventory
+      const { data: existing } = await supabase.from('inventory')
+        .select('id, quantity').eq('user_id', giftFriendId).eq('item_id', itemId).maybeSingle()
+      if (existing) {
+        await supabase.from('inventory').update({ quantity: existing.quantity + 1 }).eq('id', existing.id)
+      } else {
+        await supabase.from('inventory').insert({ user_id: giftFriendId, item_id: itemId, quantity: 1, gifted_from: user.id })
+      }
+      // Remove from sender's inventory
+      if (giftingInv.quantity <= 1) {
+        await supabase.from('inventory').delete().eq('id', giftingInv.id)
+      } else {
+        await supabase.from('inventory').update({ quantity: giftingInv.quantity - 1 }).eq('id', giftingInv.id)
+      }
+      const friend = friends.find(f => f.id === giftFriendId)
+      setToast(`Gifted ${giftingInv.items.name} to ${friend?.username}`)
+      setGiftingInv(null)
+      setGiftFriendId('')
+      await loadInventory()
+    } catch { setToast('Failed to send gift') }
+    finally { setGifting(false) }
+  }
+
   if (loading) return <LoadingSpinner message="Loading your items…" />
 
   return (
     <div className="flex flex-col gap-5">
-
       <div>
         <h1 className="text-2xl font-bold text-text-primary">Inventory</h1>
         <p className="text-text-muted text-sm mt-0.5">Items you own — tap to use on your pet</p>
@@ -83,15 +125,49 @@ export default function InventoryPage() {
                   +{inv.items.stat_boost} {inv.items.stat_target} · x{inv.quantity}
                 </p>
               </div>
-              <button
-                onClick={() => useItem(inv)}
-                disabled={using === inv.id || !pet}
-                className="shrink-0 bg-card hover:bg-hover border border-border text-text-primary text-xs font-semibold px-3 py-1.5 rounded transition-colors disabled:opacity-40"
-              >
-                {using === inv.id ? '…' : 'Use'}
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                {friends.length > 0 && (
+                  <button onClick={() => { setGiftingInv(inv); setGiftFriendId('') }}
+                    className="text-text-muted hover:text-accent-light transition-colors"
+                    title="Gift to friend">
+                    <Gift size={15} />
+                  </button>
+                )}
+                <button
+                  onClick={() => useItem(inv)}
+                  disabled={using === inv.id || !pet}
+                  className="bg-card hover:bg-hover border border-border text-text-primary text-xs font-semibold px-3 py-1.5 rounded transition-colors disabled:opacity-40"
+                >
+                  {using === inv.id ? '…' : 'Use'}
+                </button>
+              </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Gift modal */}
+      {giftingInv && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="bg-surface border border-border rounded-lg w-full max-w-sm p-5 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <p className="font-semibold text-text-primary">Gift {giftingInv.items.name}</p>
+              <button onClick={() => setGiftingInv(null)} className="text-text-muted hover:text-text-primary"><X size={16} /></button>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-text-muted">Send to</label>
+              <select value={giftFriendId} onChange={e => setGiftFriendId(e.target.value)} className="field text-sm">
+                <option value="">Select a friend…</option>
+                {friends.map(f => <option key={f.id} value={f.id}>{f.username}</option>)}
+              </select>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={sendGift} disabled={gifting || !giftFriendId}>
+                {gifting ? 'Sending…' : 'Send Gift'}
+              </Button>
+              <Button variant="ghost" onClick={() => setGiftingInv(null)}>Cancel</Button>
+            </div>
+          </div>
         </div>
       )}
 

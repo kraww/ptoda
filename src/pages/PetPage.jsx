@@ -281,7 +281,7 @@ export default function PetPage() {
       )}
 
       {/* Pet display */}
-      <div className={`relative flex justify-center items-center py-10 bg-surface border border-border rounded-lg ${pet.is_sick ? 'opacity-50 grayscale' : ''}`}>
+      <div className={`relative flex justify-center items-center py-10 bg-surface border border-border rounded-lg overflow-hidden ${pet.is_sick ? 'opacity-50 grayscale' : ''}`}>
         <PetSprite pet={pet} species={species} size={180} />
 
         {/* Stage badge */}
@@ -314,8 +314,8 @@ export default function PetPage() {
       {/* Stats */}
       <StatPanel pet={pet} />
 
-      {/* Care actions */}
-      <div>
+      {/* Care actions — hidden while sleeping (all locked anyway) */}
+      {!pet.is_sleeping && <div>
         <p className="section-label mb-3">Care</p>
         <div className="grid grid-cols-2 gap-2">
           {CARE_ACTIONS.map(({ id, label, Icon, stat, accent, sideEffect }) => {
@@ -360,7 +360,7 @@ export default function PetPage() {
             )
           })()}
         </div>
-      </div>
+      </div>}
 
       {/* Bag pull-up tab — aligned with content column */}
       <div className="fixed bottom-14 md:bottom-0 left-0 right-0 md:left-56 z-40 flex justify-center pointer-events-none">

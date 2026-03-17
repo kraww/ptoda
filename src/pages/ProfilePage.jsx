@@ -4,6 +4,7 @@ import { User, LogOut, Pencil, Check, X, ExternalLink } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { usePet } from '../context/PetContext'
+import { loadAchievements, getAchievementIcon } from '../lib/achievements'
 import Button from '../components/ui/Button'
 import PetSprite from '../components/pet/PetSprite'
 import Toast from '../components/ui/Toast'
@@ -29,6 +30,7 @@ export default function ProfilePage() {
   const [bioValue, setBioValue] = useState('')
   const [saving, setSaving] = useState(false)
   const [pastEvolutions, setPastEvolutions] = useState([])
+  const [achievements, setAchievements] = useState([])
   const [toast, setToast] = useState(null)
 
   useEffect(() => {
@@ -45,6 +47,7 @@ export default function ProfilePage() {
       .eq('is_alive', false)
       .order('evolved_at', { ascending: false })
       .then(({ data }) => setPastEvolutions(data ?? []))
+    loadAchievements(supabase, user.id).then(setAchievements)
   }, [user])
 
   async function saveBio() {
@@ -172,6 +175,32 @@ export default function ProfilePage() {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Achievements */}
+      {achievements.length > 0 && (
+        <div className="bg-surface border border-border rounded-lg overflow-hidden">
+          <p className="section-label px-4 pt-4 pb-3">
+            Achievements <span className="text-text-muted font-normal normal-case">({achievements.filter(a => a.earned).length}/{achievements.length})</span>
+          </p>
+          <div className="grid grid-cols-2 gap-2 px-4 pb-4">
+            {achievements.map(a => {
+              const Icon = getAchievementIcon(a.icon)
+              return (
+                <div
+                  key={a.key}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border ${a.earned ? 'bg-accent/5 border-accent/20' : 'bg-card border-border opacity-40'}`}
+                >
+                  <Icon size={15} className={a.earned ? 'text-accent-light shrink-0' : 'text-text-muted shrink-0'} />
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-text-primary truncate">{a.name}</p>
+                    <p className="text-2xs text-text-muted truncate">{a.description}</p>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { loadAchievements, getAchievementIcon } from '../lib/achievements'
 import PetSprite from '../components/pet/PetSprite'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 
@@ -22,6 +23,7 @@ export default function PublicProfilePage() {
   const [profile, setProfile] = useState(null)
   const [currentPet, setCurrentPet] = useState(null)
   const [pastEvolutions, setPastEvolutions] = useState([])
+  const [achievements, setAchievements] = useState([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
 
@@ -57,6 +59,8 @@ export default function PublicProfilePage() {
 
       setCurrentPet(pet ?? null)
       setPastEvolutions(past ?? [])
+      const allAch = await loadAchievements(supabase, prof.id)
+      setAchievements(allAch.filter(a => a.earned))
       setLoading(false)
     }
     load()
@@ -149,6 +153,27 @@ export default function PublicProfilePage() {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Achievements — only earned ones shown on public profile */}
+      {achievements.length > 0 && (
+        <div className="bg-surface border border-border rounded-lg overflow-hidden">
+          <p className="section-label px-4 pt-4 pb-3">Achievements</p>
+          <div className="grid grid-cols-2 gap-2 px-4 pb-4">
+            {achievements.map(a => {
+              const Icon = getAchievementIcon(a.icon)
+              return (
+                <div key={a.key} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border bg-accent/5 border-accent/20">
+                  <Icon size={15} className="text-accent-light shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-text-primary truncate">{a.name}</p>
+                    <p className="text-2xs text-text-muted truncate">{a.description}</p>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

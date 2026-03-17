@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { usePet } from '../context/PetContext'
 import { STAGE_EGG } from '../lib/constants'
+import { award } from '../lib/achievements'
 import Button from '../components/ui/Button'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 
@@ -42,6 +43,9 @@ export default function AdoptPage() {
         last_stat_update: new Date().toISOString(),
       })
       if (err) throw err
+      // Collector: 3+ lifetime pets
+      const { count } = await supabase.from('pets').select('id', { count: 'exact', head: true }).eq('user_id', user.id)
+      if ((count ?? 0) >= 3) award(supabase, user.id, 'collector')
       await reload()
       navigate('/pet')
     } catch (e) {

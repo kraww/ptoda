@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { usePet } from '../context/PetContext'
 import { determineEvolution } from '../lib/evolutionLogic'
+import { award } from '../lib/achievements'
 import {
   STAGE_EGG, STAGE_BABY, STAGE_EVOLVED,
   HATCH_ACTION_THRESHOLD, EVOLVE_ACTION_THRESHOLD,
@@ -126,6 +127,10 @@ export default function PetPage() {
 
       setPet(p => ({ ...p, ...localUpdates }))
       setToast(`${action.label} +${COINS_PER_ACTION} coins`)
+
+      // Achievement checks
+      const newTotal = Object.values(newCounts).reduce((a, b) => a + b, 0)
+      if (newTotal >= 100) award(supabase, user.id, 'dedicated')
     } catch { setToast('Something went wrong') }
     finally { setActing(false) }
   }
@@ -136,14 +141,18 @@ export default function PetPage() {
     setActing(true)
     try {
       const now = new Date().toISOString()
-      const newLastUsed = { ...pet.action_last_used, sleep: now }
+      const newLastUsed  = { ...pet.action_last_used, sleep: now }
+      const newSleepCount = (pet.action_counts?.sleep ?? 0) + 1
+      const newCounts    = { ...pet.action_counts, sleep: newSleepCount }
       await supabase.from('pets').update({
         is_sleeping: true, sleep_started_at: now,
-        action_last_used: newLastUsed, last_stat_update: now,
+        action_counts: newCounts, action_last_used: newLastUsed, last_stat_update: now,
       }).eq('id', pet.id)
       await supabase.from('care_log').insert({ pet_id: pet.id, action: 'sleep', coins_earned: 0 })
-      setPet(p => ({ ...p, is_sleeping: true, sleep_started_at: now, action_last_used: newLastUsed }))
+      setPet(p => ({ ...p, is_sleeping: true, sleep_started_at: now, action_last_used: newLastUsed, action_counts: newCounts }))
       setToast(`${pet.name} is sleeping`)
+
+      if (newSleepCount >= 10) award(supabase, user.id, 'well_rested')
     } catch { setToast('Something went wrong') }
     finally { setActing(false) }
   }
@@ -209,6 +218,7 @@ export default function PetPage() {
       await supabase.from('pets').update({ stage: STAGE_BABY, last_stat_update: new Date().toISOString() }).eq('id', pet.id)
       await reload()
       setToast('Your egg hatched!')
+      award(supabase, user.id, 'first_hatch')
     } catch { setToast('Something went wrong') }
     finally { setActing(false) }
   }
@@ -224,6 +234,8 @@ export default function PetPage() {
       }).eq('id', pet.id)
       await reload()
       setToast(`${pet.name} evolved into ${form} form`)
+      award(supabase, user.id, 'first_evolution')
+      award(supabase, user.id, `form_${form}`)
     } catch { setToast('Something went wrong') }
     finally { setActing(false) }
   }

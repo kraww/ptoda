@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Utensils, Gamepad2, Sparkles, Moon, Pill, AlertTriangle, Egg, Backpack, ChevronUp } from 'lucide-react'
+import { Utensils, Gamepad2, Sparkles, Moon, Pill, AlertTriangle, Egg, Backpack, ChevronUp, Sun } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { usePet } from '../context/PetContext'
@@ -8,7 +8,8 @@ import { determineEvolution } from '../lib/evolutionLogic'
 import {
   STAGE_EGG, STAGE_BABY, STAGE_EVOLVED,
   HATCH_ACTION_THRESHOLD, EVOLVE_ACTION_THRESHOLD,
-  COINS_PER_ACTION, STAT_MAX, DEFAULT_RECOVERY_WINDOW_HOURS
+  COINS_PER_ACTION, STAT_MAX, STAT_MIN, DEFAULT_RECOVERY_WINDOW_HOURS,
+  SLEEP_DURATION_HOURS,
 } from '../lib/constants'
 import PetSprite from '../components/pet/PetSprite'
 import StatPanel from '../components/pet/StatPanel'
@@ -17,11 +18,11 @@ import Toast from '../components/ui/Toast'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import InventoryDrawer from '../components/pet/InventoryDrawer'
 
+// Sleep button uses Moon icon but is rendered separately below the grid
 const CARE_ACTIONS = [
-  { id: 'feed',  label: 'Feed',  Icon: Utensils, stat: 'hunger',      accent: 'text-orange-400 border-orange-400/20 hover:bg-orange-400/5' },
-  { id: 'play',  label: 'Play',  Icon: Gamepad2, stat: 'happiness',   accent: 'text-yellow-400 border-yellow-400/20 hover:bg-yellow-400/5' },
-  { id: 'clean', label: 'Clean', Icon: Sparkles, stat: 'cleanliness', accent: 'text-sky-400    border-sky-400/20    hover:bg-sky-400/5'    },
-  { id: 'sleep', label: 'Sleep', Icon: Moon,     stat: 'energy',      accent: 'text-green-400  border-green-400/20  hover:bg-green-400/5'  },
+  { id: 'feed',  label: 'Feed',  Icon: Utensils, stat: 'hunger',      sideEffect: { cleanliness: -10 }, accent: 'text-orange-400 border-orange-400/20 hover:bg-orange-400/5' },
+  { id: 'play',  label: 'Play',  Icon: Gamepad2, stat: 'happiness',   sideEffect: { energy: -15 },      accent: 'text-yellow-400 border-yellow-400/20 hover:bg-yellow-400/5' },
+  { id: 'clean', label: 'Clean', Icon: Sparkles, stat: 'cleanliness', sideEffect: null,                 accent: 'text-sky-400    border-sky-400/20    hover:bg-sky-400/5'    },
 ]
 
 function getSickTimeLeft(sickSince, decayConfig) {
@@ -33,6 +34,17 @@ function getSickTimeLeft(sickSince, decayConfig) {
   const h = Math.floor(msLeft / 3600000)
   const m = Math.floor((msLeft % 3600000) / 60000)
   return h > 0 ? `${h}h ${m}m remaining` : `${m}m remaining`
+}
+
+function getSleepProgress(sleepStartedAt) {
+  if (!sleepStartedAt) return { hoursSlept: 0, label: '' }
+  const hoursSlept = (Date.now() - new Date(sleepStartedAt).getTime()) / 3600000
+  if (hoursSlept >= SLEEP_DURATION_HOURS) return { hoursSlept, label: 'Fully rested — wake up!' }
+  const remaining = SLEEP_DURATION_HOURS - hoursSlept
+  const h = Math.floor(remaining)
+  const m = Math.floor((remaining % 1) * 60)
+  const label = h > 0 ? `${h}h ${m}m until fully rested` : `${m}m until fully rested`
+  return { hoursSlept, label }
 }
 
 export default function PetPage() {
@@ -68,26 +80,75 @@ export default function PetPage() {
   const canHatch  = pet.stage === STAGE_EGG  && totalActions >= HATCH_ACTION_THRESHOLD
   const canEvolve = pet.stage === STAGE_BABY && totalActions >= EVOLVE_ACTION_THRESHOLD
   const timeLeft  = pet.is_sick ? getSickTimeLeft(pet.sick_since, decayConfig) : null
+  const sleepProgress = pet.is_sleeping ? getSleepProgress(pet.sleep_started_at) : null
 
   async function doCareAction(action) {
-    if (acting || pet.is_sick) return
+    if (acting || pet.is_sick || pet.is_sleeping) return
+    if ((pet[action.stat] ?? 0) >= STAT_MAX) return
     setActing(true)
     try {
       const stat    = action.stat
       const newVal  = Math.min(STAT_MAX, (pet[stat] ?? 0) + 20)
       const newCounts = { ...pet.action_counts, [action.id]: (pet.action_counts?.[action.id] ?? 0) + 1 }
 
-      await supabase.from('pets').update({
-        [stat]: newVal, action_counts: newCounts,
-        last_stat_update: new Date().toISOString(),
-      }).eq('id', pet.id)
+      const updates = { [stat]: newVal, action_counts: newCounts, last_stat_update: new Date().toISOString() }
+      const localUpdates = { [stat]: newVal, action_counts: newCounts }
 
+      // Apply side effects (e.g. feed dirties, play tires)
+      if (action.sideEffect) {
+        for (const [seStat, delta] of Object.entries(action.sideEffect)) {
+          const newSEVal = Math.max(STAT_MIN, Math.min(STAT_MAX, (pet[seStat] ?? 0) + delta))
+          updates[seStat] = newSEVal
+          localUpdates[seStat] = newSEVal
+        }
+      }
+
+      await supabase.from('pets').update(updates).eq('id', pet.id)
       await supabase.from('profiles').update({ coins: (profile?.coins ?? 0) + COINS_PER_ACTION }).eq('id', user.id)
       await loadProfile(user.id)
       await supabase.from('care_log').insert({ pet_id: pet.id, action: action.id, coins_earned: COINS_PER_ACTION })
 
-      setPet(p => ({ ...p, [stat]: newVal, action_counts: newCounts }))
+      setPet(p => ({ ...p, ...localUpdates }))
       setToast(`${action.label} +${COINS_PER_ACTION} coins`)
+    } catch { setToast('Something went wrong') }
+    finally { setActing(false) }
+  }
+
+  async function doSleep() {
+    if (acting || pet.is_sick) return
+    setActing(true)
+    try {
+      const now = new Date().toISOString()
+      await supabase.from('pets').update({
+        is_sleeping: true, sleep_started_at: now, last_stat_update: now,
+      }).eq('id', pet.id)
+      await supabase.from('care_log').insert({ pet_id: pet.id, action: 'sleep', coins_earned: 0 })
+      setPet(p => ({ ...p, is_sleeping: true, sleep_started_at: now }))
+      setToast(`${pet.name} is sleeping`)
+    } catch { setToast('Something went wrong') }
+    finally { setActing(false) }
+  }
+
+  async function doWakeUp() {
+    if (acting) return
+    setActing(true)
+    try {
+      const hoursSlept = Math.min(SLEEP_DURATION_HOURS, (Date.now() - new Date(pet.sleep_started_at).getTime()) / 3600000)
+      const energyGained = Math.round((hoursSlept / SLEEP_DURATION_HOURS) * STAT_MAX)
+      const happinessGained = Math.round((hoursSlept / SLEEP_DURATION_HOURS) * 15)
+      const newEnergy    = Math.min(STAT_MAX, (pet.energy    ?? 0) + energyGained)
+      const newHappiness = Math.min(STAT_MAX, (pet.happiness ?? 0) + happinessGained)
+      const now = new Date().toISOString()
+
+      await supabase.from('pets').update({
+        is_sleeping: false, sleep_started_at: null,
+        energy: newEnergy, happiness: newHappiness,
+        last_stat_update: now,
+      }).eq('id', pet.id)
+
+      setPet(p => ({ ...p, is_sleeping: false, sleep_started_at: null, energy: newEnergy, happiness: newHappiness }))
+      const h = hoursSlept < 1 ? `${Math.round(hoursSlept * 60)}m` : `${hoursSlept.toFixed(1)}h`
+      setToast(`${pet.name} woke up after ${h}`)
     } catch { setToast('Something went wrong') }
     finally { setActing(false) }
   }
@@ -187,6 +248,19 @@ export default function PetPage() {
         </div>
       )}
 
+      {/* Sleeping banner */}
+      {pet.is_sleeping && (
+        <div className="bg-surface border border-green-400/20 rounded-lg p-4 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-green-400">{pet.name} is sleeping</p>
+            <p className="text-xs text-text-muted mt-0.5">{sleepProgress?.label}</p>
+          </div>
+          <Button onClick={doWakeUp} disabled={acting} size="sm">
+            <Sun size={13} /> Wake Up
+          </Button>
+        </div>
+      )}
+
       {/* Pet display */}
       <div className={`relative flex justify-center items-center py-10 bg-surface border border-border rounded-lg ${pet.is_sick ? 'opacity-50 grayscale' : ''}`}>
         <PetSprite pet={pet} species={species} size={180} />
@@ -224,18 +298,38 @@ export default function PetPage() {
       {/* Care actions */}
       <div>
         <p className="section-label mb-3">Care</p>
-        <div className={`grid grid-cols-2 gap-2 ${pet.is_sick ? 'opacity-30 pointer-events-none' : ''}`}>
-          {CARE_ACTIONS.map(({ id, label, Icon, accent }) => (
+        <div className="grid grid-cols-2 gap-2">
+          {CARE_ACTIONS.map(({ id, label, Icon, stat, accent }) => {
+            const isCapped = (pet[stat] ?? 0) >= STAT_MAX
+            const isDisabled = acting || pet.is_sick || pet.is_sleeping || isCapped
+            return (
+              <button
+                key={id}
+                onClick={() => doCareAction({ id, label, stat, sideEffect: CARE_ACTIONS.find(a => a.id === id).sideEffect })}
+                disabled={isDisabled}
+                className={`flex items-center gap-3 px-4 py-3.5 bg-surface border rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${accent}`}
+              >
+                <Icon size={16} strokeWidth={2} />
+                <span className="text-sm font-medium text-text-primary">{label}</span>
+                {isCapped && !pet.is_sick && !pet.is_sleeping && (
+                  <span className="ml-auto text-2xs text-text-muted">full</span>
+                )}
+              </button>
+            )
+          })}
+
+          {/* Sleep button — full width, only when not already sleeping or sick */}
+          {!pet.is_sleeping && (
             <button
-              key={id}
-              onClick={() => doCareAction({ id, label, stat: CARE_ACTIONS.find(a => a.id === id).stat })}
+              onClick={doSleep}
               disabled={acting || pet.is_sick}
-              className={`flex items-center gap-3 px-4 py-3.5 bg-surface border rounded-lg transition-colors disabled:opacity-40 ${accent}`}
+              className="col-span-2 flex items-center gap-3 px-4 py-3.5 bg-surface border text-green-400 border-green-400/20 hover:bg-green-400/5 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <Icon size={16} strokeWidth={2} />
-              <span className="text-sm font-medium text-text-primary">{label}</span>
+              <Moon size={16} strokeWidth={2} />
+              <span className="text-sm font-medium text-text-primary">Sleep</span>
+              <span className="ml-auto text-2xs text-text-muted">restores energy over 8h</span>
             </button>
-          ))}
+          )}
         </div>
       </div>
 

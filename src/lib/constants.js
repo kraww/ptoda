@@ -39,3 +39,6 @@ export const DEFAULT_DECAY = {
 
 // Coins earned per care action
 export const COINS_PER_ACTION = 2
+
+// Sleep mechanic
+export const SLEEP_DURATION_HOURS = 8   // Full rest takes 8 hours

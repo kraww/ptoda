@@ -1,6 +1,5 @@
 import { STAGE_EGG, STAGE_BABY, STAGE_EVOLVED } from '../../lib/constants'
 
-// Placeholder emoji per stage — replaced by real art once assets are ready
 const PLACEHOLDER = {
   [STAGE_EGG]:     '🥚',
   [STAGE_BABY]:    '🐣',
@@ -8,10 +7,10 @@ const PLACEHOLDER = {
 }
 
 export default function PetSprite({ pet, species, size = 160 }) {
-  const stage = pet?.stage ?? STAGE_EGG
-  const form  = pet?.evolution_form ?? null
+  const stage      = pet?.stage ?? STAGE_EGG
+  const form       = pet?.evolution_form ?? null
+  const isSleeping = pet?.is_sleeping ?? false
 
-  // Try to get image URL from species data
   let imgSrc = null
   if (species) {
     if (stage === STAGE_EGG)     imgSrc = species.egg_sprite
@@ -19,19 +18,14 @@ export default function PetSprite({ pet, species, size = 160 }) {
     if (stage === STAGE_EVOLVED) imgSrc = species.evolution_sprites?.[form] ?? species.base_sprite
   }
 
-  if (imgSrc) {
-    return (
-      <img
-        src={imgSrc}
-        alt={species?.name ?? 'Pet'}
-        style={{ width: size, height: size, objectFit: 'contain' }}
-        className="drop-shadow-lg"
-      />
-    )
-  }
-
-  // No art yet — show placeholder emoji
-  return (
+  const sprite = imgSrc ? (
+    <img
+      src={imgSrc}
+      alt={species?.name ?? 'Pet'}
+      style={{ width: size, height: size, objectFit: 'contain' }}
+      className="drop-shadow-lg"
+    />
+  ) : (
     <div
       style={{ width: size, height: size, fontSize: size * 0.55 }}
       className="flex items-center justify-center select-none"
@@ -39,6 +33,22 @@ export default function PetSprite({ pet, species, size = 160 }) {
       aria-label={stage}
     >
       {PLACEHOLDER[stage] ?? '🐾'}
+    </div>
+  )
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <div className={isSleeping ? 'opacity-40 grayscale' : ''}>
+        {sprite}
+      </div>
+
+      {isSleeping && (
+        <div className="absolute top-0 right-0 flex flex-col items-end gap-1 pointer-events-none select-none">
+          <span className="text-text-muted font-bold animate-float-z1" style={{ fontSize: size * 0.18 }}>z</span>
+          <span className="text-text-muted font-bold animate-float-z2" style={{ fontSize: size * 0.13 }}>z</span>
+          <span className="text-text-muted font-bold animate-float-z3" style={{ fontSize: size * 0.09 }}>z</span>
+        </div>
+      )}
     </div>
   )
 }

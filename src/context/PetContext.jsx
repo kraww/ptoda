@@ -37,14 +37,15 @@ export function PetProvider({ children }) {
       const decayed = applyDecay(petData, decayCfg ?? [])
 
       // If decay changed sick or alive status, save it back to DB
-      const sickChanged  = decayed.is_sick   !== petData.is_sick
-      const aliveChanged = decayed.is_alive  !== petData.is_alive
+      const sickChanged  = decayed.is_sick      !== petData.is_sick
+      const aliveChanged = decayed.is_alive     !== petData.is_alive
+      const sleepChanged = decayed.is_sleeping  !== petData.is_sleeping
       const statsChanged = decayed.hunger      !== petData.hunger
                         || decayed.happiness   !== petData.happiness
                         || decayed.cleanliness !== petData.cleanliness
                         || decayed.energy      !== petData.energy
 
-      if (sickChanged || aliveChanged || statsChanged) {
+      if (sickChanged || aliveChanged || sleepChanged || statsChanged) {
         const updates = {
           hunger:      decayed.hunger,
           happiness:   decayed.happiness,
@@ -54,6 +55,7 @@ export function PetProvider({ children }) {
         }
         if (sickChanged)  { updates.is_sick   = decayed.is_sick;   updates.sick_since = decayed.sick_since ?? null }
         if (aliveChanged) { updates.is_alive  = decayed.is_alive }
+        if (sleepChanged) { updates.is_sleeping = decayed.is_sleeping; updates.sleep_started_at = decayed.sleep_started_at ?? null }
         await supabase.from('pets').update(updates).eq('id', petData.id)
       }
 

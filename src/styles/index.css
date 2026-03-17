@@ -44,4 +44,21 @@
   .section-label {
     @apply text-2xs font-semibold uppercase tracking-widest text-text-muted;
   }
+
+  /* Rendered HTML post content */
+  .post-content img {
+    @apply max-w-full rounded-lg my-3;
+  }
+  .post-content a {
+    @apply text-accent-light underline underline-offset-2 hover:text-accent;
+  }
+  .post-content p { @apply mb-3; }
+  .post-content ul { @apply list-disc list-inside mb-3 space-y-1; }
+  .post-content ol { @apply list-decimal list-inside mb-3 space-y-1; }
+  .post-content h2 { @apply text-base font-semibold text-text-primary mb-2 mt-4; }
+  .post-content h3 { @apply text-sm font-semibold text-text-primary mb-1.5 mt-3; }
+  .post-content blockquote {
+    @apply border-l-2 border-border pl-3 text-text-muted italic my-3;
+  }
+  .post-content strong { @apply text-text-primary font-semibold; }
 }

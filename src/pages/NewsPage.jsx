@@ -1,11 +1,22 @@
 import { useEffect, useState } from 'react'
 import { Newspaper } from 'lucide-react'
+import DOMPurify from 'dompurify'
 import { supabase } from '../lib/supabase'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 
 function formatDate(iso) {
   return new Date(iso).toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric'
+  })
+}
+
+// Sanitize HTML — allows safe tags like <img>, <a>, <b>, <p>, etc.
+// Strips anything dangerous (scripts, iframes, event handlers)
+function sanitize(html) {
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['p', 'br', 'b', 'i', 'u', 'strong', 'em', 'a', 'img', 'ul', 'ol', 'li', 'h2', 'h3', 'blockquote'],
+    ALLOWED_ATTR: ['href', 'src', 'alt', 'target', 'rel', 'width', 'height'],
+    FORCE_BODY: true,
   })
 }
 
@@ -44,8 +55,7 @@ export default function NewsPage() {
         <div className="flex flex-col gap-4">
           {posts.map((post, i) => (
             <article key={post.id} className="bg-surface border border-border rounded-lg overflow-hidden">
-              {/* Post header */}
-              <div className={`px-5 py-4 ${i === 0 ? 'border-b border-border' : 'border-b border-border'}`}>
+              <div className="px-5 py-4 border-b border-border">
                 <div className="flex items-start justify-between gap-4">
                   <h2 className="text-base font-semibold text-text-primary leading-snug">{post.title}</h2>
                   {i === 0 && (
@@ -57,10 +67,10 @@ export default function NewsPage() {
                 <p className="text-xs text-text-muted mt-1">{formatDate(post.created_at)}</p>
               </div>
 
-              {/* Post body */}
-              <div className="px-5 py-4">
-                <p className="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">{post.content}</p>
-              </div>
+              <div
+                className="px-5 py-4 text-sm text-text-secondary leading-relaxed post-content"
+                dangerouslySetInnerHTML={{ __html: sanitize(post.content) }}
+              />
             </article>
           ))}
         </div>

@@ -159,7 +159,9 @@ export default function AdminPosts() {
                   placeholder="Write your announcement here…"
                   className="field resize-none font-sans leading-relaxed"
                 />
-                <p className="text-2xs text-text-muted">Plain text. Line breaks are preserved.</p>
+                <p className="text-2xs text-text-muted">
+                  HTML is supported — e.g. <code className="bg-card px-1 rounded">{'<img src="..." alt="...">'}</code>, <code className="bg-card px-1 rounded">{'<a href="...">link</a>'}</code>, <code className="bg-card px-1 rounded">{'<b>'}</code>, <code className="bg-card px-1 rounded">{'<ul>'}</code>
+                </p>
               </div>
 
               <label className="flex items-center gap-2.5 cursor-pointer">

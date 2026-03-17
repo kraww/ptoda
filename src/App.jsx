@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { PetProvider } from './context/PetContext'
 
@@ -18,7 +19,12 @@ import AdminApp       from './admin/AdminApp'
 import LoadingSpinner from './components/ui/LoadingSpinner'
 
 function AppRoutes() {
-  const { user, loading } = useAuth()
+  const { user, loading, profile } = useAuth()
+
+  useEffect(() => {
+    const theme = profile?.active_theme ?? 'dark'
+    document.documentElement.className = `theme-${theme}`
+  }, [profile?.active_theme])
 
   if (loading) return <LoadingSpinner message="Starting up…" />
 

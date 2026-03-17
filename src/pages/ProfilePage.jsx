@@ -9,13 +9,19 @@ import Button from '../components/ui/Button'
 import PetSprite from '../components/pet/PetSprite'
 import Toast from '../components/ui/Toast'
 
-function Avatar({ username, size = 56 }) {
-  const initial = (username ?? '?')[0].toUpperCase()
+const THEME_META = {
+  dark:    { label: 'Dark',    bg: '#0e0e10', surface: '#1c1c1f', text: '#f2f3f5' },
+  light:   { label: 'Light',   bg: '#f0f0f3', surface: '#ffffff', text: '#18181b' },
+  neutral: { label: 'Neutral', bg: '#1a1815', surface: '#28251f', text: '#f0ebe0' },
+  forest:  { label: 'Forest',  bg: '#0d1410', surface: '#182118', text: '#e8f0e8' },
+}
+
+function AvatarDisplay({ profile, size = 56 }) {
+  const imgUrl = profile?.avatar?.image_url
+  if (imgUrl) return <img src={imgUrl} alt="avatar" className="rounded-full object-cover shrink-0 border border-border" style={{ width: size, height: size }} />
+  const initial = (profile?.username ?? '?')[0].toUpperCase()
   return (
-    <div
-      className="rounded-full bg-accent/20 flex items-center justify-center shrink-0 select-none"
-      style={{ width: size, height: size, fontSize: size * 0.4 }}
-    >
+    <div className="rounded-full bg-accent/20 flex items-center justify-center shrink-0 select-none" style={{ width: size, height: size, fontSize: size * 0.4 }}>
       <span className="font-bold text-accent-light">{initial}</span>
     </div>
   )
@@ -31,23 +37,31 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [pastEvolutions, setPastEvolutions] = useState([])
   const [achievements, setAchievements] = useState([])
+  const [availableAvatars, setAvailableAvatars] = useState([])
   const [toast, setToast] = useState(null)
 
-  useEffect(() => {
-    setBioValue(profile?.bio ?? '')
-  }, [profile?.bio])
+  useEffect(() => { setBioValue(profile?.bio ?? '') }, [profile?.bio])
 
   useEffect(() => {
     if (!user) return
     supabase
       .from('pets')
       .select('id, name, stage, evolution_form, evolved_at, species:species_id(*)')
-      .eq('user_id', user.id)
-      .eq('stage', 'evolved')
-      .eq('is_alive', false)
+      .eq('user_id', user.id).eq('stage', 'evolved').eq('is_alive', false)
       .order('evolved_at', { ascending: false })
       .then(({ data }) => setPastEvolutions(data ?? []))
     loadAchievements(supabase, user.id).then(setAchievements)
+
+    // Load avatars: defaults + user unlocks
+    Promise.all([
+      supabase.from('avatars').select('*').eq('is_default', true),
+      supabase.from('user_avatars').select('avatar:avatar_id(*)').eq('user_id', user.id),
+    ]).then(([{ data: defaults }, { data: unlocked }]) => {
+      const unlockedAvatars = (unlocked ?? []).map(u => u.avatar).filter(Boolean)
+      const all = [...(defaults ?? []), ...unlockedAvatars]
+      const unique = [...new Map(all.map(a => [a.id, a])).values()]
+      setAvailableAvatars(unique)
+    })
   }, [user])
 
   async function saveBio() {
@@ -59,6 +73,16 @@ export default function ProfilePage() {
       setToast('Bio updated')
     } catch { setToast('Failed to save') }
     finally { setSaving(false) }
+  }
+
+  async function selectTheme(theme) {
+    await supabase.from('profiles').update({ active_theme: theme }).eq('id', user.id)
+    await loadProfile(user.id)
+  }
+
+  async function selectAvatar(avatarId) {
+    await supabase.from('profiles').update({ active_avatar: avatarId }).eq('id', user.id)
+    await loadProfile(user.id)
   }
 
   async function handleSignOut() {
@@ -75,7 +99,7 @@ export default function ProfilePage() {
 
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Avatar username={profile?.username} size={56} />
+        <AvatarDisplay profile={profile} size={56} />
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-bold text-text-primary truncate">{profile?.username ?? '…'}</h1>
           <div className="flex items-center gap-3 mt-0.5">
@@ -178,6 +202,46 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Avatar picker */}
+      {availableAvatars.length > 0 && (
+        <div className="bg-surface border border-border rounded-lg p-4">
+          <p className="section-label mb-3">Avatar</p>
+          <div className="flex flex-wrap gap-2">
+            {availableAvatars.map(av => (
+              <button key={av.id} onClick={() => selectAvatar(av.id)}
+                className={`rounded-full overflow-hidden border-2 transition-colors ${profile?.active_avatar === av.id ? 'border-accent' : 'border-transparent hover:border-border'}`}
+              >
+                <img src={av.image_url} alt={av.name} className="w-12 h-12 object-cover" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Theme picker */}
+      <div className="bg-surface border border-border rounded-lg p-4">
+        <p className="section-label mb-3">Theme</p>
+        <div className="flex flex-wrap gap-2">
+          {(profile?.unlocked_themes ?? ['dark', 'light', 'neutral']).map(key => {
+            const meta = THEME_META[key]
+            if (!meta) return null
+            const isActive = (profile?.active_theme ?? 'dark') === key
+            return (
+              <button key={key} onClick={() => selectTheme(key)}
+                className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-lg border transition-colors ${isActive ? 'border-accent' : 'border-border hover:border-text-muted'}`}
+              >
+                <div className="flex gap-0.5">
+                  <div className="w-4 h-4 rounded-sm" style={{ background: meta.bg }} />
+                  <div className="w-4 h-4 rounded-sm" style={{ background: meta.surface }} />
+                  <div className="w-4 h-4 rounded-sm" style={{ background: meta.text }} />
+                </div>
+                <span className="text-2xs text-text-muted">{meta.label}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
 
       {/* Achievements */}
       {achievements.length > 0 && (

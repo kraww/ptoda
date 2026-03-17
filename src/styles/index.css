@@ -4,61 +4,100 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+/* ─── Theme variables ───────────────────────────────────────────── */
+:root,
+.theme-dark {
+  --color-bg:             #0e0e10;
+  --color-sidebar:        #141416;
+  --color-surface:        #1c1c1f;
+  --color-card:           #242428;
+  --color-hover:          #2e2e33;
+  --color-border:         #2e2e33;
+  --color-text-primary:   #f2f3f5;
+  --color-text-secondary: #a1a1aa;
+  --color-text-muted:     #52525b;
+}
+
+.theme-light {
+  --color-bg:             #f0f0f3;
+  --color-sidebar:        #e8e8ec;
+  --color-surface:        #ffffff;
+  --color-card:           #f5f5f8;
+  --color-hover:          #ebebef;
+  --color-border:         #dddde3;
+  --color-text-primary:   #18181b;
+  --color-text-secondary: #52525b;
+  --color-text-muted:     #a1a1aa;
+}
+
+.theme-neutral {
+  --color-bg:             #1a1815;
+  --color-sidebar:        #201e1a;
+  --color-surface:        #28251f;
+  --color-card:           #302c25;
+  --color-hover:          #3a352c;
+  --color-border:         #3a352c;
+  --color-text-primary:   #f0ebe0;
+  --color-text-secondary: #a89880;
+  --color-text-muted:     #6b5e4a;
+}
+
+.theme-forest {
+  --color-bg:             #0d1410;
+  --color-sidebar:        #111a14;
+  --color-surface:        #182118;
+  --color-card:           #1e2a1e;
+  --color-hover:          #263426;
+  --color-border:         #2a3a2a;
+  --color-text-primary:   #e8f0e8;
+  --color-text-secondary: #8aaa8a;
+  --color-text-muted:     #4a6a4a;
+}
+
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
   }
 
   body {
-    background-color: #0e0e10;
-    color: #f2f3f5;
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
     font-family: 'Inter', system-ui, sans-serif;
     min-height: 100vh;
     font-size: 15px;
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Scrollbar styling */
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #2e2e33; border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: #3a3a42; }
+  ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-hover); }
 
-  /* Input base reset */
   input, textarea, select {
-    background-color: #1c1c1f;
-    color: #f2f3f5;
+    background-color: var(--color-card);
+    color: var(--color-text-primary);
     outline: none;
   }
-  input::placeholder, textarea::placeholder { color: #52525b; }
+  input::placeholder, textarea::placeholder { color: var(--color-text-muted); }
 }
 
 @layer components {
-  /* Shared input style */
   .field {
     @apply w-full bg-card border border-border rounded text-text-primary px-3 py-2.5 text-sm
            focus:outline-none focus:border-accent transition-colors;
   }
 
-  /* Section header */
   .section-label {
     @apply text-2xs font-semibold uppercase tracking-widest text-text-muted;
   }
 
-  /* Rendered HTML post content */
-  .post-content img {
-    @apply max-w-full rounded-lg my-3;
-  }
-  .post-content a {
-    @apply text-accent-light underline underline-offset-2 hover:text-accent;
-  }
-  .post-content p { @apply mb-3; }
-  .post-content ul { @apply list-disc list-inside mb-3 space-y-1; }
-  .post-content ol { @apply list-decimal list-inside mb-3 space-y-1; }
-  .post-content h2 { @apply text-base font-semibold text-text-primary mb-2 mt-4; }
-  .post-content h3 { @apply text-sm font-semibold text-text-primary mb-1.5 mt-3; }
-  .post-content blockquote {
-    @apply border-l-2 border-border pl-3 text-text-muted italic my-3;
-  }
-  .post-content strong { @apply text-text-primary font-semibold; }
+  .post-content img      { @apply max-w-full rounded-lg my-3; }
+  .post-content a        { @apply text-accent-light underline underline-offset-2 hover:text-accent; }
+  .post-content p        { @apply mb-3; }
+  .post-content ul       { @apply list-disc list-inside mb-3 space-y-1; }
+  .post-content ol       { @apply list-decimal list-inside mb-3 space-y-1; }
+  .post-content h2       { @apply text-base font-semibold text-text-primary mb-2 mt-4; }
+  .post-content h3       { @apply text-sm font-semibold text-text-primary mb-1.5 mt-3; }
+  .post-content blockquote { @apply border-l-2 border-border pl-3 text-text-muted italic my-3; }
+  .post-content strong   { @apply text-text-primary font-semibold; }
 }

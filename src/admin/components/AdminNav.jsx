@@ -1,14 +1,15 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Dna, Package, Clock, Users, Newspaper, Trophy } from 'lucide-react'
+import { LayoutDashboard, Dna, Package, Clock, Users, Newspaper, Trophy, UserCircle } from 'lucide-react'
 
 const LINKS = [
-  { to: '/admin',              label: 'Dashboard',   Icon: LayoutDashboard, end: true },
-  { to: '/admin/posts',        label: 'Posts',       Icon: Newspaper },
-  { to: '/admin/species',      label: 'Species',     Icon: Dna },
-  { to: '/admin/items',        label: 'Items',       Icon: Package },
-  { to: '/admin/decay',        label: 'Decay',       Icon: Clock },
-  { to: '/admin/users',        label: 'Users',       Icon: Users },
-  { to: '/admin/achievements', label: 'Achievements',Icon: Trophy },
+  { to: '/admin',              label: 'Dashboard',    Icon: LayoutDashboard, end: true },
+  { to: '/admin/posts',        label: 'Posts',        Icon: Newspaper },
+  { to: '/admin/species',      label: 'Species',      Icon: Dna },
+  { to: '/admin/items',        label: 'Items',        Icon: Package },
+  { to: '/admin/decay',        label: 'Decay',        Icon: Clock },
+  { to: '/admin/users',        label: 'Users',        Icon: Users },
+  { to: '/admin/achievements', label: 'Achievements', Icon: Trophy },
+  { to: '/admin/avatars',      label: 'Avatars',      Icon: UserCircle },
 ]
 
 export default function AdminNav() {

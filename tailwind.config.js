@@ -4,18 +4,18 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Structural backgrounds (dark → light)
-        bg:      '#0e0e10',   // outermost page background
-        sidebar: '#141416',   // left sidebar
-        surface: '#1c1c1f',   // content panels
-        card:    '#242428',   // cards, inputs
-        hover:   '#2e2e33',   // hover states
-        border:  '#2e2e33',   // dividers and borders
+        // Structural — driven by CSS theme variables
+        bg:      'var(--color-bg)',
+        sidebar: 'var(--color-sidebar)',
+        surface: 'var(--color-surface)',
+        card:    'var(--color-card)',
+        hover:   'var(--color-hover)',
+        border:  'var(--color-border)',
 
         // Text
-        'text-primary':   '#f2f3f5',
-        'text-secondary': '#a1a1aa',
-        'text-muted':     '#52525b',
+        'text-primary':   'var(--color-text-primary)',
+        'text-secondary': 'var(--color-text-secondary)',
+        'text-muted':     'var(--color-text-muted)',
 
         // Accent — T'poda purple
         accent: {

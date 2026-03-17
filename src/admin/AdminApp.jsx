@@ -9,6 +9,7 @@ import AdminDecay from './pages/AdminDecay'
 import AdminUsers from './pages/AdminUsers'
 import AdminPosts        from './pages/AdminPosts'
 import AdminAchievements from './pages/AdminAchievements'
+import AdminAvatars      from './pages/AdminAvatars'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 
 const ADMIN_IDS = ['a9a09202-6f21-4b9a-bb20-d0d38c49d9d7']
@@ -49,6 +50,7 @@ export default function AdminApp() {
           <Route path="users"   element={<AdminUsers />} />
           <Route path="posts"        element={<AdminPosts />} />
           <Route path="achievements" element={<AdminAchievements />} />
+          <Route path="avatars"      element={<AdminAvatars />} />
         </Routes>
       </main>
     </div>

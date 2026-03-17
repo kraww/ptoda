@@ -6,13 +6,11 @@ import { loadAchievements, getAchievementIcon } from '../lib/achievements'
 import PetSprite from '../components/pet/PetSprite'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 
-function Avatar({ username, size = 72 }) {
+function Avatar({ username, avatarUrl, size = 72 }) {
+  if (avatarUrl) return <img src={avatarUrl} alt={username} className="rounded-full object-cover shrink-0 border border-border" style={{ width: size, height: size }} />
   const initial = (username ?? '?')[0].toUpperCase()
   return (
-    <div
-      className="rounded-full bg-accent/20 flex items-center justify-center shrink-0 select-none"
-      style={{ width: size, height: size, fontSize: size * 0.4 }}
-    >
+    <div className="rounded-full bg-accent/20 flex items-center justify-center shrink-0 select-none" style={{ width: size, height: size, fontSize: size * 0.4 }}>
       <span className="font-bold text-accent-light">{initial}</span>
     </div>
   )
@@ -37,7 +35,15 @@ export default function PublicProfilePage() {
         .maybeSingle()
 
       if (!prof) { setNotFound(true); setLoading(false); return }
-      setProfile(prof)
+      // setProfile handled above after avatar fetch
+
+      // Fetch active avatar URL
+      let avatarUrl = null
+      if (prof.active_avatar) {
+        const { data: av } = await supabase.from('avatars').select('image_url').eq('id', prof.active_avatar).maybeSingle()
+        avatarUrl = av?.image_url ?? null
+      }
+      setProfile({ ...prof, avatarUrl })
 
       const [{ data: pet }, { data: past }] = await Promise.all([
         supabase
@@ -90,7 +96,7 @@ export default function PublicProfilePage() {
 
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Avatar username={profile.username} size={72} />
+        <Avatar username={profile.username} avatarUrl={profile.avatarUrl} size={72} />
         <div>
           <h1 className="text-2xl font-bold text-text-primary">{profile.username}</h1>
           {memberSince && <p className="text-xs text-text-muted mt-0.5">Joined {memberSince}</p>}

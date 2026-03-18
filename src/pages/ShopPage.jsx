@@ -27,7 +27,7 @@ export default function ShopPage() {
     if (coins < item.price) { setToast('Not enough coins'); return }
     setBuying(item.id)
     try {
-      await supabase.from('profiles').update({ coins: coins - item.price }).eq('id', user.id)
+      await supabase.rpc('spend_coins', { p_amount: item.price })
       const { data: existing } = await supabase.from('inventory')
         .select('id, quantity').eq('user_id', user.id).eq('item_id', item.id).maybeSingle()
       if (existing) {

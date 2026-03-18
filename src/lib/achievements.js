@@ -28,8 +28,7 @@ export async function award(supabase, userId, key) {
 
   // Grant coins
   if (ach.reward_coins > 0) {
-    const { data: p } = await supabase.from('profiles').select('coins').eq('id', userId).single()
-    await supabase.from('profiles').update({ coins: (p?.coins ?? 0) + ach.reward_coins }).eq('id', userId)
+    await supabase.rpc('earn_coins', { p_amount: ach.reward_coins })
   }
 
   // Grant item

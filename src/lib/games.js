@@ -11,15 +11,10 @@ export async function getTodaySubmissions(supabase, userId, gameKey) {
 }
 
 export async function submitScore(supabase, userId, gameKey, score, coinsEarned) {
-  const { error } = await supabase.from('game_submissions').insert({
-    user_id: userId,
-    game_key: gameKey,
-    score,
-    coins_earned: coinsEarned,
+  const { error } = await supabase.rpc('submit_game_score', {
+    p_game_key: gameKey,
+    p_score: score,
+    p_coins_earned: coinsEarned,
   })
   if (error) throw error
-  if (coinsEarned > 0) {
-    const { data: prof } = await supabase.from('profiles').select('coins').eq('id', userId).single()
-    await supabase.from('profiles').update({ coins: (prof?.coins ?? 0) + coinsEarned }).eq('id', userId)
-  }
 }

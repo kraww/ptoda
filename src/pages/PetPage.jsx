@@ -135,7 +135,7 @@ export default function PetPage() {
       }
 
       await supabase.from('pets').update(updates).eq('id', pet.id)
-      await supabase.from('profiles').update({ coins: (profile?.coins ?? 0) + COINS_PER_ACTION }).eq('id', user.id)
+      await supabase.rpc('earn_coins', { p_amount: COINS_PER_ACTION })
       await loadProfile(user.id)
       await supabase.from('care_log').insert({ pet_id: pet.id, action: action.id, coins_earned: COINS_PER_ACTION })
 

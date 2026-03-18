@@ -31,13 +31,15 @@ export default function InventoryPage() {
   }
 
   async function loadFriends() {
-    const { data } = await supabase
+    const { data: fships } = await supabase
       .from('friendships')
-      .select('requester_id, recipient_id, requester:requester_id(id, username), recipient:recipient_id(id, username)')
+      .select('requester_id, recipient_id')
       .or(`requester_id.eq.${user.id},recipient_id.eq.${user.id}`)
       .eq('status', 'accepted')
-    const list = (data ?? []).map(f => f.requester_id === user.id ? f.recipient : f.requester)
-    setFriends(list)
+    const otherIds = (fships ?? []).map(f => f.requester_id === user.id ? f.recipient_id : f.requester_id)
+    if (otherIds.length === 0) { setFriends([]); return }
+    const { data: profiles } = await supabase.from('profiles').select('id, username').in('id', otherIds)
+    setFriends(profiles ?? [])
   }
 
   useEffect(() => { loadInventory(); loadFriends() }, [])

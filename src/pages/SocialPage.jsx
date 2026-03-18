@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, Link } from 'react-router-dom'
 import { Users, Mail, UserPlus, Check, X, Send, ChevronDown, MessageSquare } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -27,25 +27,27 @@ export default function SocialPage() {
   const [toast, setToast] = useState(null)
 
   // Friends state
-  const [friends, setFriends] = useState([])
-  const [pendingIn, setPendingIn] = useState([])
+  const [friends, setFriends]       = useState([])
+  const [pendingIn, setPendingIn]   = useState([])
   const [pendingSent, setPendingSent] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResult, setSearchResult] = useState(null)
-  const [searching, setSearching] = useState(false)
+  const [searching, setSearching]   = useState(false)
   const [friendsLoading, setFriendsLoading] = useState(true)
 
   // Mail state
-  const [messages, setMessages] = useState([])
+  const [mailBox, setMailBox]       = useState('inbox')   // 'inbox' | 'outbox'
+  const [inbox, setInbox]           = useState([])
+  const [outbox, setOutbox]         = useState([])
   const [expandedId, setExpandedId] = useState(null)
   const [composeOpen, setComposeOpen] = useState(false)
-  const [composeTo, setComposeTo] = useState('')
+  const [composeTo, setComposeTo]   = useState('')         // profile id
   const [composeBody, setComposeBody] = useState('')
-  const [sending, setSending] = useState(false)
+  const [sending, setSending]       = useState(false)
   const [mailLoading, setMailLoading] = useState(true)
 
   useEffect(() => { loadFriends() }, [user])
-  useEffect(() => { if (tab === 'mail') loadMessages() }, [tab, user])
+  useEffect(() => { if (tab === 'mail') loadMail() }, [tab, user])
 
   async function loadFriends() {
     if (!user) return
@@ -61,6 +63,33 @@ export default function SocialPage() {
     setPendingIn(all.filter(f => f.status === 'pending' && f.recipient_id === user.id).map(f => ({ id: f.id, profile: f.requester })))
     setPendingSent(all.filter(f => f.status === 'pending' && f.requester_id === user.id).map(f => ({ id: f.id, profile: f.recipient })))
     setFriendsLoading(false)
+  }
+
+  async function loadMail() {
+    if (!user) return
+    const [{ data: inData }, { data: outData }] = await Promise.all([
+      supabase
+        .from('messages')
+        .select('*, sender:sender_id(id, username)')
+        .eq('recipient_id', user.id)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('messages')
+        .select('*, recipient:recipient_id(id, username)')
+        .eq('sender_id', user.id)
+        .order('created_at', { ascending: false }),
+    ])
+    setInbox(inData ?? [])
+    setOutbox(outData ?? [])
+    setMailLoading(false)
+  }
+
+  // Open compose pre-filled for a specific friend, switching to mail tab
+  function mailFriend(profileId) {
+    setComposeTo(profileId)
+    setComposeOpen(true)
+    setComposeBody('')
+    setTab('mail')
   }
 
   async function searchUser() {
@@ -102,40 +131,30 @@ export default function SocialPage() {
     refreshCounts()
   }
 
-  async function loadMessages() {
-    if (!user) return
-    const { data } = await supabase
-      .from('messages')
-      .select('*, sender:sender_id(id, username)')
-      .eq('recipient_id', user.id)
-      .order('created_at', { ascending: false })
-    setMessages(data ?? [])
-    setMailLoading(false)
-  }
-
   async function expandMessage(msg) {
     setExpandedId(expandedId === msg.id ? null : msg.id)
-    if (!msg.is_read) {
+    if (!msg.is_read && mailBox === 'inbox') {
       await supabase.from('messages').update({ is_read: true }).eq('id', msg.id)
-      setMessages(ms => ms.map(m => m.id === msg.id ? { ...m, is_read: true } : m))
+      setInbox(ms => ms.map(m => m.id === msg.id ? { ...m, is_read: true } : m))
       refreshCounts()
     }
   }
 
   async function sendMessage() {
-    if (!composeTo.trim() || !composeBody.trim()) return
+    if (!composeTo || !composeBody.trim()) return
     setSending(true)
-    const { data: recipient } = await supabase.from('profiles').select('id').ilike('username', composeTo.trim()).limit(1).maybeSingle()
-    if (!recipient) { setToast('User not found'); setSending(false); return }
-    const isFriend = friends.some(f => f.profile.id === recipient.id)
-    if (!isFriend) { setToast('You can only message friends'); setSending(false); return }
-    const { error } = await supabase.from('messages').insert({ sender_id: user.id, recipient_id: recipient.id, body: composeBody.trim() })
+    const { error } = await supabase.from('messages').insert({
+      sender_id: user.id,
+      recipient_id: composeTo,
+      body: composeBody.trim(),
+    })
     if (error) { setToast('Failed to send'); setSending(false); return }
     setToast('Message sent')
     setComposeOpen(false)
     setComposeTo('')
     setComposeBody('')
     setSending(false)
+    await loadMail()
   }
 
   const TABS = [
@@ -143,6 +162,8 @@ export default function SocialPage() {
     { id: 'mail',      label: 'Mail',      Icon: Mail },
     { id: 'community', label: 'Community', Icon: MessageSquare },
   ]
+
+  const currentMessages = mailBox === 'inbox' ? inbox : outbox
 
   return (
     <div className="flex flex-col gap-5">
@@ -163,7 +184,7 @@ export default function SocialPage() {
         ))}
       </div>
 
-      {/* Friends tab */}
+      {/* ── Friends tab ── */}
       {tab === 'friends' && (
         <div className="flex flex-col gap-4">
           {/* Search */}
@@ -217,8 +238,20 @@ export default function SocialPage() {
               {friends.length === 0
                 ? <p className="text-sm text-text-muted">No friends yet — search for someone above</p>
                 : friends.map(({ id, profile }) => (
-                  <div key={id} className="bg-surface border border-border rounded-lg px-4 py-3 flex items-center justify-between">
-                    <p className="text-sm font-medium text-text-primary">{profile.username}</p>
+                  <div key={id} className="bg-surface border border-border rounded-lg px-4 py-3 flex items-center gap-3">
+                    <Link
+                      to={`/user/${profile.username}`}
+                      className="text-sm font-medium text-text-primary hover:text-accent-light transition-colors flex-1"
+                    >
+                      {profile.username}
+                    </Link>
+                    <button
+                      onClick={() => mailFriend(profile.id)}
+                      className="flex items-center gap-1.5 text-xs text-text-muted hover:text-accent-light transition-colors"
+                      title="Send mail"
+                    >
+                      <Mail size={13} /> Mail
+                    </button>
                     <button onClick={() => removeFriend(id)} className="text-2xs text-text-muted hover:text-danger transition-colors">Remove</button>
                   </div>
                 ))
@@ -241,32 +274,53 @@ export default function SocialPage() {
         </div>
       )}
 
-      {/* Mail tab */}
+      {/* ── Mail tab ── */}
       {tab === 'mail' && (
         <div className="flex flex-col gap-4">
+
           {/* Compose */}
           <div className="flex flex-col gap-3">
-            <button onClick={() => setComposeOpen(o => !o)}
-              className="flex items-center gap-2 text-sm font-medium text-accent-light hover:text-accent transition-colors w-fit">
+            <button
+              onClick={() => { setComposeOpen(o => !o); if (!composeOpen) { setComposeTo(''); setComposeBody('') } }}
+              className="flex items-center gap-2 text-sm font-medium text-accent-light hover:text-accent transition-colors w-fit"
+            >
               <Send size={14} /> New message
               <ChevronDown size={13} className={`transition-transform ${composeOpen ? 'rotate-180' : ''}`} />
             </button>
+
             {composeOpen && (
               <div className="bg-surface border border-border rounded-lg p-4 flex flex-col gap-3">
                 <div>
-                  <label className="text-xs text-text-muted mb-1 block">To (username)</label>
-                  <input value={composeTo} onChange={e => setComposeTo(e.target.value)}
-                    placeholder="Friend's username…" className="field text-sm" />
+                  <label className="text-xs text-text-muted mb-1 block">To</label>
+                  {friends.length === 0 ? (
+                    <p className="text-xs text-text-muted">You need friends to send mail.</p>
+                  ) : (
+                    <select
+                      value={composeTo}
+                      onChange={e => setComposeTo(e.target.value)}
+                      className="field text-sm"
+                    >
+                      <option value="">Select a friend…</option>
+                      {friends.map(({ profile }) => (
+                        <option key={profile.id} value={profile.id}>{profile.username}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
                 <div>
                   <label className="text-xs text-text-muted mb-1 block">Message</label>
-                  <textarea value={composeBody} onChange={e => setComposeBody(e.target.value)}
-                    placeholder="Write something…" rows={3} maxLength={500}
-                    className="field resize-none text-sm" />
+                  <textarea
+                    value={composeBody}
+                    onChange={e => setComposeBody(e.target.value)}
+                    placeholder="Write something…"
+                    rows={3}
+                    maxLength={500}
+                    className="field resize-none text-sm"
+                  />
                   <p className="text-2xs text-text-muted mt-1 text-right">{composeBody.length}/500</p>
                 </div>
                 <div className="flex gap-2">
-                  <Button onClick={sendMessage} disabled={sending || !composeTo.trim() || !composeBody.trim()}>
+                  <Button onClick={sendMessage} disabled={sending || !composeTo || !composeBody.trim()}>
                     {sending ? 'Sending…' : 'Send'}
                   </Button>
                   <Button variant="ghost" onClick={() => setComposeOpen(false)}>Cancel</Button>
@@ -275,44 +329,66 @@ export default function SocialPage() {
             )}
           </div>
 
-          {/* Inbox */}
+          {/* Inbox / Outbox toggle */}
+          <div className="flex gap-1 bg-card rounded p-1 w-fit">
+            {['inbox', 'outbox'].map(box => (
+              <button
+                key={box}
+                onClick={() => { setMailBox(box); setExpandedId(null) }}
+                className={`px-3 py-1 rounded text-xs font-medium capitalize transition-colors
+                  ${mailBox === box ? 'bg-surface text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}
+              >
+                {box}
+              </button>
+            ))}
+          </div>
+
+          {/* Messages list */}
           {mailLoading ? <LoadingSpinner message="Loading mail…" /> : (
             <div className="flex flex-col gap-2">
-              <p className="section-label">Inbox ({messages.length})</p>
-              {messages.length === 0
-                ? <p className="text-sm text-text-muted">No messages yet</p>
-                : messages.map(msg => (
-                  <div key={msg.id}
-                    className={`bg-surface border rounded-lg overflow-hidden cursor-pointer transition-colors
-                      ${!msg.is_read ? 'border-accent/30' : 'border-border'}`}
-                    onClick={() => expandMessage(msg)}
-                  >
-                    <div className="px-4 py-3 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 min-w-0">
-                        {!msg.is_read && <div className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />}
-                        <p className={`text-sm truncate ${!msg.is_read ? 'font-semibold text-text-primary' : 'text-text-secondary'}`}>
-                          {msg.sender?.username ?? '?'}
-                        </p>
-                        <p className="text-xs text-text-muted truncate flex-1">
-                          {expandedId === msg.id ? '' : msg.body}
-                        </p>
+              <p className="section-label capitalize">{mailBox} ({currentMessages.length})</p>
+              {currentMessages.length === 0
+                ? <p className="text-sm text-text-muted">{mailBox === 'inbox' ? 'No messages yet' : 'Nothing sent yet'}</p>
+                : currentMessages.map(msg => {
+                  const label = mailBox === 'inbox'
+                    ? (msg.sender?.username ?? '?')
+                    : `To: ${msg.recipient?.username ?? '?'}`
+                  const isUnread = mailBox === 'inbox' && !msg.is_read
+
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`bg-surface border rounded-lg overflow-hidden cursor-pointer transition-colors
+                        ${isUnread ? 'border-accent/30' : 'border-border'}`}
+                      onClick={() => expandMessage(msg)}
+                    >
+                      <div className="px-4 py-3 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {isUnread && <div className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />}
+                          <p className={`text-sm shrink-0 ${isUnread ? 'font-semibold text-text-primary' : 'text-text-secondary'}`}>
+                            {label}
+                          </p>
+                          <p className="text-xs text-text-muted truncate flex-1">
+                            {expandedId === msg.id ? '' : msg.body}
+                          </p>
+                        </div>
+                        <span className="text-2xs text-text-muted shrink-0">{timeAgo(msg.created_at)}</span>
                       </div>
-                      <span className="text-2xs text-text-muted shrink-0">{timeAgo(msg.created_at)}</span>
+                      {expandedId === msg.id && (
+                        <div className="px-4 pb-3 border-t border-border">
+                          <p className="text-sm text-text-secondary mt-2 leading-relaxed">{msg.body}</p>
+                        </div>
+                      )}
                     </div>
-                    {expandedId === msg.id && (
-                      <div className="px-4 pb-3 border-t border-border">
-                        <p className="text-sm text-text-secondary mt-2 leading-relaxed">{msg.body}</p>
-                      </div>
-                    )}
-                  </div>
-                ))
+                  )
+                })
               }
             </div>
           )}
         </div>
       )}
 
-      {/* Community tab */}
+      {/* ── Community tab ── */}
       {tab === 'community' && <ForumPage />}
 
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}

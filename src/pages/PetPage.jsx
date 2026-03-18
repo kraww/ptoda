@@ -1,16 +1,18 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Utensils, Gamepad2, Sparkles, Moon, Pill, AlertTriangle, Egg, Backpack, ChevronUp, Sun, Bird } from 'lucide-react'
+import { Utensils, Gamepad2, Sparkles, Moon, Pill, AlertTriangle, Egg, Backpack, ChevronUp, ChevronDown, Sun, Bird, History } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { usePet } from '../context/PetContext'
+import { useLayout } from '../context/LayoutContext'
 import { determineEvolution } from '../lib/evolutionLogic'
 import { award } from '../lib/achievements'
 import {
   STAGE_EGG, STAGE_BABY, STAGE_EVOLVED,
-  HATCH_ACTION_THRESHOLD, EVOLVE_ACTION_THRESHOLD,
+  EVOLVE_ACTION_THRESHOLD,
   COINS_PER_ACTION, STAT_MAX, STAT_MIN, DEFAULT_RECOVERY_WINDOW_HOURS,
   SLEEP_DURATION_HOURS, ACTION_COOLDOWN_HOURS,
+  TAP_COOLDOWN_HOURS, TAP_BONUS_HOURS, TAP_MIN_HATCH_HOURS,
 } from '../lib/constants'
 import PetSprite from '../components/pet/PetSprite'
 import StatPanel from '../components/pet/StatPanel'
@@ -18,6 +20,7 @@ import Button from '../components/ui/Button'
 import Toast from '../components/ui/Toast'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import InventoryDrawer from '../components/pet/InventoryDrawer'
+import PushPermissionBanner from '../components/PushPermissionBanner'
 
 // Sleep button uses Moon icon but is rendered separately below the grid
 const CARE_ACTIONS = [
@@ -63,13 +66,34 @@ function getSleepProgress(sleepStartedAt) {
 }
 
 export default function PetPage() {
-  const { user, profile, loadProfile } = useAuth()
+  const { user, profile, loadProfile, loginBonus, clearLoginBonus } = useAuth()
+
+  useEffect(() => {
+    if (!loginBonus) return
+    const msg = loginBonus.bonus > 0
+      ? `Day ${loginBonus.streak} streak! +${loginBonus.bonus} bonus coins`
+      : `Day ${loginBonus.streak} login streak`
+    setToast(msg)
+    clearLoginBonus()
+  }, [loginBonus])
   const { pet, setPet, species, decayConfig, loading, error, reload } = usePet()
+  const { compact } = useLayout()
   const [toast, setToast] = useState(null)
   const [acting, setActing] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [confirmRelease, setConfirmRelease] = useState(false)
   const [confirmAbandon, setConfirmAbandon] = useState(false)
+  const [showLog, setShowLog] = useState(false)
+  const [careLog, setCareLog] = useState([])
+  const [logLoading, setLogLoading] = useState(false)
+
+  // Self-heal: if pet is evolved but evolved_at is missing (old data), patch it now
+  useEffect(() => {
+    if (!pet || pet.stage !== STAGE_EVOLVED || pet.evolved_at) return
+    const now = new Date().toISOString()
+    supabase.from('pets').update({ evolved_at: now }).eq('id', pet.id)
+      .then(() => setPet(p => ({ ...p, evolved_at: now })))
+  }, [pet?.id, pet?.stage, pet?.evolved_at])
 
   if (loading) return <LoadingSpinner message="Loading your pet…" />
 
@@ -93,9 +117,22 @@ export default function PetPage() {
     </div>
   )
 
-  const totalActions = Object.values(pet.action_counts ?? {}).reduce((a, b) => a + b, 0)
-  const canHatch  = pet.stage === STAGE_EGG  && totalActions >= HATCH_ACTION_THRESHOLD
-  const canEvolve = pet.stage === STAGE_BABY && totalActions >= EVOLVE_ACTION_THRESHOLD
+  // Egg hatch — time-based with tap boosts
+  const tapCount      = pet.action_counts?.tap ?? 0
+  const hatchHours    = species?.hatch_hours ?? 24
+  const reducedHours  = Math.max(TAP_MIN_HATCH_HOURS, hatchHours - tapCount * TAP_BONUS_HOURS)
+  const hatchMs       = reducedHours * 3600000
+  const adoptedAt     = new Date(pet.adopted_at ?? pet.created_at).getTime()
+  const elapsedMs     = Date.now() - adoptedAt
+  const hatchProgress = Math.min(1, elapsedMs / hatchMs)
+  const hatchTimeLeft = Math.max(0, hatchMs - elapsedMs)
+  const canHatch      = pet.stage === STAGE_EGG && hatchProgress >= 1
+
+  // Evolution — exclude tap actions from count
+  const evolveTotal = Object.entries(pet.action_counts ?? {})
+    .filter(([k]) => k !== 'tap')
+    .reduce((a, [, v]) => a + v, 0)
+  const canEvolve = pet.stage === STAGE_BABY && evolveTotal >= EVOLVE_ACTION_THRESHOLD
   const timeLeft  = pet.is_sick ? getSickTimeLeft(pet.sick_since, decayConfig) : null
   const sleepProgress = pet.is_sleeping ? getSleepProgress(pet.sleep_started_at) : null
   const releaseMinDays = decayConfig?.find(r => r.release_min_days != null)?.release_min_days ?? 5
@@ -281,8 +318,63 @@ export default function PetPage() {
     finally { setActing(false) }
   }
 
+  const ACTION_LABELS = {
+    feed: 'Fed', play: 'Played', clean: 'Cleaned',
+    sleep: 'Slept', medicine: 'Used medicine', item: 'Used item',
+  }
+
+  function logTimeAgo(ts) {
+    const diff = Date.now() - new Date(ts).getTime()
+    const m = Math.floor(diff / 60000)
+    if (m < 1) return 'just now'
+    if (m < 60) return `${m}m ago`
+    const h = Math.floor(m / 60)
+    if (h < 24) return `${h}h ago`
+    return `${Math.floor(h / 24)}d ago`
+  }
+
+  function formatHatchTime(ms) {
+    if (ms <= 0) return 'Ready to hatch!'
+    const h = Math.floor(ms / 3600000)
+    const m = Math.floor((ms % 3600000) / 60000)
+    if (h > 0) return `${h}h ${m}m remaining`
+    return `${m}m remaining`
+  }
+
+  async function doTap() {
+    if (acting) return
+    if (getCooldownMs('tap', pet.action_last_used, TAP_COOLDOWN_HOURS) > 0) return
+    setActing(true)
+    try {
+      const now = new Date().toISOString()
+      const newCounts   = { ...pet.action_counts,   tap: (pet.action_counts?.tap ?? 0) + 1 }
+      const newLastUsed = { ...pet.action_last_used, tap: now }
+      await supabase.from('pets').update({ action_counts: newCounts, action_last_used: newLastUsed }).eq('id', pet.id)
+      await supabase.from('care_log').insert({ pet_id: pet.id, action: 'tap', coins_earned: 0 })
+      setPet(p => ({ ...p, action_counts: newCounts, action_last_used: newLastUsed }))
+      setToast('You tapped the egg!')
+    } catch { setToast('Something went wrong') }
+    finally { setActing(false) }
+  }
+
+  async function toggleLog() {
+    if (showLog) { setShowLog(false); return }
+    setShowLog(true)
+    if (careLog.length > 0) return
+    setLogLoading(true)
+    const { data } = await supabase.from('care_log')
+      .select('action, coins_earned, created_at')
+      .eq('pet_id', pet.id)
+      .order('created_at', { ascending: false })
+      .limit(10)
+    setCareLog(data ?? [])
+    setLogLoading(false)
+  }
+
   return (
     <div className="flex flex-col gap-4">
+
+      <PushPermissionBanner />
 
       {/* Page header */}
       <div className="flex items-center justify-between">
@@ -362,70 +454,152 @@ export default function PetPage() {
         )}
       </div>
 
-      {/* Stage prompts */}
-      {!pet.is_sick && canHatch && (
-        <div className="bg-surface border border-accent/30 rounded-lg p-4 flex items-center justify-between">
-          <p className="text-sm text-text-secondary">Your egg is ready to hatch</p>
-          <Button onClick={hatch} disabled={acting} size="sm">Hatch</Button>
+      {/* Egg stage UI */}
+      {pet.stage === STAGE_EGG && (
+        <div className="bg-surface border border-border rounded-lg p-4 flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between text-xs text-text-muted">
+              <span>Hatch progress</span>
+              <span className={canHatch ? 'text-accent-light font-medium' : ''}>
+                {canHatch ? 'Ready to hatch!' : formatHatchTime(hatchTimeLeft)}
+              </span>
+            </div>
+            <div className="h-2 bg-card rounded-full overflow-hidden">
+              <div
+                className="h-full bg-accent rounded-full transition-all duration-500"
+                style={{ width: `${hatchProgress * 100}%` }}
+              />
+            </div>
+            <p className="text-2xs text-text-muted">
+              {tapCount > 0
+                ? `Tapped ${tapCount} time${tapCount === 1 ? '' : 's'} — saved ${tapCount * TAP_BONUS_HOURS}h`
+                : `Tap every ${TAP_COOLDOWN_HOURS}h to speed up hatching`}
+            </p>
+          </div>
+
+          {canHatch ? (
+            <Button onClick={hatch} disabled={acting} size="sm" className="w-full">Hatch!</Button>
+          ) : (
+            (() => {
+              const tapCooldownMs = getCooldownMs('tap', pet.action_last_used, TAP_COOLDOWN_HOURS)
+              const onCooldown    = tapCooldownMs > 0
+              const tapPct        = onCooldown ? tapCooldownMs / (TAP_COOLDOWN_HOURS * 3600000) : 0
+              return (
+                <button
+                  onClick={doTap}
+                  disabled={acting || onCooldown}
+                  className="relative overflow-hidden flex items-center justify-center gap-2 px-4 py-2.5 bg-surface border border-accent/30 text-accent-light rounded-lg text-sm font-medium transition-colors hover:bg-accent/5 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {onCooldown && (
+                    <div className="absolute inset-0 bg-accent opacity-10 pointer-events-none"
+                      style={{ transform: `scaleX(${tapPct})`, transformOrigin: 'left' }} />
+                  )}
+                  <Egg size={14} />
+                  Tap Egg
+                  {onCooldown && <span className="text-2xs text-text-muted">{formatCooldown(tapCooldownMs)}</span>}
+                </button>
+              )
+            })()
+          )}
         </div>
       )}
+
+      {/* Evolve prompt */}
       {!pet.is_sick && canEvolve && (
         <div className="bg-surface border border-yellow-400/30 rounded-lg p-4 flex items-center justify-between">
           <p className="text-sm text-text-secondary">Ready to evolve</p>
           <Button onClick={evolve} disabled={acting} size="sm">Evolve</Button>
         </div>
       )}
-      {!pet.is_sick && pet.stage === STAGE_EGG && !canHatch && (
-        <p className="text-center text-text-muted text-xs">
-          {HATCH_ACTION_THRESHOLD - totalActions} more care action{HATCH_ACTION_THRESHOLD - totalActions === 1 ? '' : 's'} until hatch
-        </p>
-      )}
 
-      {/* Stats */}
-      <StatPanel pet={pet} />
+      {/* Stats — hidden for eggs */}
+      {pet.stage !== STAGE_EGG && <StatPanel pet={pet} />}
 
-      {/* Care actions — hidden while sleeping (all locked anyway) */}
-      {!pet.is_sleeping && <div>
+      {/* Care log toggle — hidden for eggs */}
+      {pet.stage !== STAGE_EGG && <div className="flex flex-col gap-2">
+        <button
+          onClick={toggleLog}
+          className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary transition-colors w-fit"
+        >
+          <History size={11} />
+          Recent activity
+          {showLog ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+        </button>
+        {showLog && (
+          <div className="flex flex-col gap-1">
+            {logLoading && <p className="text-xs text-text-muted">Loading…</p>}
+            {!logLoading && careLog.length === 0 && (
+              <p className="text-xs text-text-muted">No activity yet.</p>
+            )}
+            {careLog.map((entry, i) => (
+              <div key={i} className="flex items-center justify-between text-xs text-text-muted">
+                <span>{ACTION_LABELS[entry.action] ?? entry.action}</span>
+                <span className="flex items-center gap-3">
+                  {entry.coins_earned > 0 && (
+                    <span className="text-accent-light">+{entry.coins_earned}</span>
+                  )}
+                  <span>{logTimeAgo(entry.created_at)}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>}
+
+      {/* Care actions — hidden while sleeping or in egg stage */}
+      {pet.stage !== STAGE_EGG && !pet.is_sleeping && <div>
         <p className="section-label mb-3">Care</p>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           {CARE_ACTIONS.map(({ id, label, Icon, stat, accent, sideEffect }) => {
-            const isCapped     = (pet[stat] ?? 0) >= STAT_MAX
-            const cooldownMs   = getCooldownMs(id, pet.action_last_used)
-            const onCooldown   = cooldownMs > 0
-            const isDisabled   = acting || pet.is_sick || pet.is_sleeping || isCapped || onCooldown
-            const hint = onCooldown           ? formatCooldown(cooldownMs)
-                       : isCapped             ? 'full'
-                       : null
+            const isCapped    = (pet[stat] ?? 0) >= STAT_MAX
+            const cooldownMs  = getCooldownMs(id, pet.action_last_used)
+            const onCooldown  = cooldownMs > 0
+            const isDisabled  = acting || pet.is_sick || pet.is_sleeping || isCapped || onCooldown
+            const hint        = onCooldown ? formatCooldown(cooldownMs) : isCapped ? 'full' : null
+            const cooldownPct = onCooldown ? cooldownMs / (ACTION_COOLDOWN_HOURS * 3600000) : 0
             return (
               <button
                 key={id}
                 onClick={() => doCareAction({ id, label, stat, sideEffect })}
                 disabled={isDisabled}
-                className={`flex items-center gap-3 px-4 py-3.5 bg-surface border rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${accent}`}
+                className={`relative overflow-hidden flex flex-col items-center gap-1.5 px-2 py-3 bg-surface border rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${accent}`}
               >
+                {onCooldown && (
+                  <div
+                    className="absolute inset-0 bg-current opacity-10 origin-left pointer-events-none"
+                    style={{ transform: `scaleX(${cooldownPct})`, transformOrigin: 'left' }}
+                  />
+                )}
                 <Icon size={16} strokeWidth={2} />
-                <span className="text-sm font-medium text-text-primary">{label}</span>
+                <span className="text-xs font-medium text-text-primary">{label}</span>
                 {hint && !pet.is_sick && !pet.is_sleeping && (
-                  <span className="ml-auto text-2xs text-text-muted">{hint}</span>
+                  <span className="text-2xs text-text-muted leading-none">{hint}</span>
                 )}
               </button>
             )
           })}
 
-          {/* Sleep — 4th slot in the grid */}
+          {/* Sleep — 4th slot */}
           {(() => {
             const sleepCooldownMs = getCooldownMs('sleep', pet.action_last_used, SLEEP_DURATION_HOURS)
-            const onCooldown = sleepCooldownMs > 0
-            const hint = pet.is_sleeping ? null : onCooldown ? formatCooldown(sleepCooldownMs) : null
+            const onCooldown  = sleepCooldownMs > 0
+            const hint        = onCooldown ? formatCooldown(sleepCooldownMs) : null
+            const cooldownPct = onCooldown ? sleepCooldownMs / (SLEEP_DURATION_HOURS * 3600000) : 0
             return (
               <button
                 onClick={doSleep}
                 disabled={acting || pet.is_sick || pet.is_sleeping || onCooldown}
-                className="flex items-center gap-3 px-4 py-3.5 bg-surface border text-green-400 border-green-400/20 hover:bg-green-400/5 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="relative overflow-hidden flex flex-col items-center gap-1.5 px-2 py-3 bg-surface border text-green-400 border-green-400/20 hover:bg-green-400/5 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
+                {onCooldown && (
+                  <div
+                    className="absolute inset-0 bg-current opacity-10 origin-left pointer-events-none"
+                    style={{ transform: `scaleX(${cooldownPct})`, transformOrigin: 'left' }}
+                  />
+                )}
                 <Moon size={16} strokeWidth={2} />
-                <span className="text-sm font-medium text-text-primary">Sleep</span>
-                {hint && <span className="ml-auto text-2xs text-text-muted">{hint}</span>}
+                <span className="text-xs font-medium text-text-primary">Sleep</span>
+                {hint && <span className="text-2xs text-text-muted leading-none">{hint}</span>}
               </button>
             )
           })()}
@@ -459,8 +633,8 @@ export default function PetPage() {
       </div>
 
       {/* Bag pull-up tab — aligned with content column */}
-      <div className="fixed bottom-14 md:bottom-0 left-0 right-0 md:left-56 z-40 flex justify-center pointer-events-none">
-        <div className="w-full max-w-2xl flex justify-center">
+      <div className={`fixed bottom-14 md:bottom-0 left-0 right-0 md:left-56 z-40 flex pointer-events-none ${compact ? 'justify-start' : 'justify-center'}`}>
+        <div className={`w-full flex ${compact ? 'justify-start pl-4 max-w-sm' : 'justify-center max-w-2xl'}`}>
           <button
             onClick={() => setDrawerOpen(true)}
             className="pointer-events-auto flex items-center gap-2 bg-card border border-border border-b-0 rounded-t-xl px-6 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-hover transition-colors shadow-lg"
@@ -472,7 +646,7 @@ export default function PetPage() {
         </div>
       </div>
 
-      <InventoryDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <InventoryDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} compact={compact} />
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
     </div>
   )

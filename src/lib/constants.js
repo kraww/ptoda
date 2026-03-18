@@ -45,3 +45,8 @@ export const SLEEP_DURATION_HOURS = 8   // Full rest takes 8 hours
 
 // How long before a care action can be repeated (hours)
 export const ACTION_COOLDOWN_HOURS = 2
+
+// Egg tapping mechanic
+export const TAP_COOLDOWN_HOURS = 2   // cooldown between taps
+export const TAP_BONUS_HOURS   = 1   // hours shaved off hatch timer per tap
+export const TAP_MIN_HATCH_HOURS = 4  // floor — egg can never hatch in less than this

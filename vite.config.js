@@ -7,6 +7,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       includeAssets: ['icons/*.png', 'images/**/*'],
       manifest: {
         name: "T'poda",
@@ -29,18 +32,8 @@ export default defineConfig({
           },
         ],
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'supabase-cache',
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 5 },
-            },
-          },
-        ],
       },
     }),
   ],

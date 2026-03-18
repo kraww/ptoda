@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { ChevronDown } from 'lucide-react'
 
-export default function Drawer({ open, onClose, title, children }) {
+export default function Drawer({ open, onClose, title, children, compact = false }) {
   useEffect(() => {
     if (open) document.body.style.overflow = 'hidden'
     else document.body.style.overflow = ''
@@ -19,10 +19,11 @@ export default function Drawer({ open, onClose, title, children }) {
       )}
 
       {/* Positioner — offset by sidebar on desktop, full-width on mobile */}
-      <div className="fixed bottom-0 left-0 right-0 md:left-56 z-50 flex justify-center pointer-events-none">
+      <div className={`fixed bottom-0 left-0 right-0 md:left-56 z-50 pointer-events-none flex ${compact ? 'justify-start' : 'justify-center'}`}>
         {/* Sheet */}
         <div
-          className={`w-full max-w-2xl pointer-events-auto flex flex-col bg-surface border-t md:border-x border-border rounded-t-xl shadow-2xl transition-transform duration-300 ease-out
+          className={`pointer-events-auto flex flex-col bg-surface border-t md:border-x border-border rounded-t-xl shadow-2xl transition-transform duration-300 ease-out
+            ${compact ? 'w-full max-w-sm' : 'w-full max-w-2xl'}
             ${open ? 'translate-y-0' : 'translate-y-full'}`}
           style={{ maxHeight: '70vh' }}
         >

@@ -1,7 +1,9 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, ShoppingBag, User, LogOut, Shield, Newspaper, Gamepad2, Users, Mail } from 'lucide-react'
+import { Home, ShoppingBag, User, LogOut, Shield, Newspaper, Gamepad2, Users, Mail, PanelLeftClose, PanelLeftOpen, Flame } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useSocial } from '../../context/SocialContext'
+import { useLayout } from '../../context/LayoutContext'
+import { isAdmin } from '../../lib/admin'
 
 const NAV = [
   { to: '/pet',    label: 'Home',    Icon: Home },
@@ -11,8 +13,6 @@ const NAV = [
   { to: '/social', label: 'Social',  Icon: Users, social: true },
   { to: '/profile',label: 'Profile', Icon: User },
 ]
-
-const ADMIN_ID = 'a9a09202-6f21-4b9a-bb20-d0d38c49d9d7'
 
 function NotifBubble({ count, Icon, color }) {
   if (!count) return null
@@ -25,8 +25,9 @@ function NotifBubble({ count, Icon, color }) {
 }
 
 export default function Sidebar() {
-  const { user, profile, signOut } = useAuth()
+  const { user, profile, signOut, loginStreak } = useAuth()
   const { pendingCount, unreadCount } = useSocial()
+  const { compact, toggleCompact } = useLayout()
   const navigate = useNavigate()
 
   async function handleSignOut() {
@@ -66,7 +67,7 @@ export default function Sidebar() {
           </NavLink>
         ))}
 
-        {user?.id === ADMIN_ID && (
+        {isAdmin(profile) && (
           <>
             <p className="section-label px-2 mt-4 mb-2">Admin</p>
             <NavLink
@@ -82,6 +83,41 @@ export default function Sidebar() {
           </>
         )}
       </nav>
+
+      <div className="px-4 py-2 border-t border-border flex justify-end">
+        <button
+          onClick={toggleCompact}
+          title={compact ? 'Switch to full width' : 'Switch to compact'}
+          className="text-text-muted hover:text-text-primary transition-colors"
+        >
+          {compact ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+        </button>
+      </div>
+
+      {/* Login streak tracker */}
+      <div className="px-4 py-2.5 border-t border-border">
+        <div className="flex items-center gap-2">
+          <Flame size={11} className={loginStreak >= 7 ? 'text-orange-400' : 'text-text-muted'} />
+          <div className="flex flex-1 justify-between">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div
+                key={i}
+                className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                  i < loginStreak
+                    ? loginStreak >= 7 ? 'bg-orange-400' : 'bg-accent'
+                    : 'bg-card border border-border'
+                }`}
+              />
+            ))}
+          </div>
+          <span className="text-2xs ml-auto font-medium">
+            {loginStreak >= 7
+              ? <span className="text-orange-400">7-day bonus!</span>
+              : <span className="text-text-muted">{loginStreak}/7 days</span>
+            }
+          </span>
+        </div>
+      </div>
 
       <div className="px-2 py-3 border-t border-border">
         <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-hover transition-colors group">

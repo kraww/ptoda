@@ -21,9 +21,16 @@ function timeAgo(ts) {
 
 export default function SocialPage() {
   const { user } = useAuth()
-  const { refresh: refreshCounts } = useSocial()
+  const { pendingCount, unreadCount, refresh: refreshCounts } = useSocial()
   const [searchParams] = useSearchParams()
   const [tab, setTab] = useState(searchParams.get('tab') ?? 'community')
+  const [dismissed, setDismissed] = useState({ friends: pendingCount, mail: unreadCount })
+
+  function switchTab(id) {
+    if (id === 'friends') setDismissed(d => ({ ...d, friends: pendingCount }))
+    if (id === 'mail')    setDismissed(d => ({ ...d, mail: unreadCount }))
+    setTab(id)
+  }
   const [toast, setToast] = useState(null)
 
   // Friends state
@@ -34,6 +41,8 @@ export default function SocialPage() {
   const [searchResult, setSearchResult] = useState(null)
   const [searching, setSearching]   = useState(false)
   const [friendsLoading, setFriendsLoading] = useState(true)
+  const [activity, setActivity]     = useState([])
+  const [activityLoading, setActivityLoading] = useState(false)
 
   // Mail state
   const [mailBox, setMailBox]       = useState('inbox')   // 'inbox' | 'outbox'
@@ -59,10 +68,48 @@ export default function SocialPage() {
     const all = data ?? []
     const other = f => f.requester_id === user.id ? f.recipient : f.requester
 
-    setFriends(all.filter(f => f.status === 'accepted').map(f => ({ id: f.id, profile: other(f) })))
+    const accepted = all.filter(f => f.status === 'accepted').map(f => ({ id: f.id, profile: other(f) }))
+    setFriends(accepted)
     setPendingIn(all.filter(f => f.status === 'pending' && f.recipient_id === user.id).map(f => ({ id: f.id, profile: f.requester })))
     setPendingSent(all.filter(f => f.status === 'pending' && f.requester_id === user.id).map(f => ({ id: f.id, profile: f.recipient })))
     setFriendsLoading(false)
+
+    if (accepted.length > 0) loadActivity(accepted)
+  }
+
+  const ACTIVITY_LABELS = {
+    feed: 'fed', play: 'played with', clean: 'cleaned',
+    sleep: 'put to sleep', medicine: 'gave medicine to', item: 'used an item on',
+  }
+
+  async function loadActivity(friendList) {
+    setActivityLoading(true)
+    const friendIds = friendList.map(f => f.profile.id)
+    const usernameMap = Object.fromEntries(friendList.map(f => [f.profile.id, f.profile.username]))
+
+    const { data: pets } = await supabase
+      .from('pets')
+      .select('id, name, user_id')
+      .in('user_id', friendIds)
+      .eq('is_alive', true)
+
+    if (!pets?.length) { setActivityLoading(false); return }
+
+    const petIds = pets.map(p => p.id)
+    const petMap = Object.fromEntries(pets.map(p => [p.id, p]))
+
+    const { data: logs } = await supabase
+      .from('care_log')
+      .select('action, created_at, pet_id')
+      .in('pet_id', petIds)
+      .order('created_at', { ascending: false })
+      .limit(20)
+
+    setActivity((logs ?? []).map(log => {
+      const pet = petMap[log.pet_id]
+      return { ...log, petName: pet?.name ?? '?', username: usernameMap[pet?.user_id] ?? '?' }
+    }))
+    setActivityLoading(false)
   }
 
   async function loadMail() {
@@ -174,14 +221,25 @@ export default function SocialPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-card rounded-lg p-1">
-        {TABS.map(({ id, label, Icon }) => (
-          <button key={id} onClick={() => setTab(id)}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded text-sm font-medium transition-colors
-              ${tab === id ? 'bg-surface text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}>
-            <Icon size={14} />
-            {label}
-          </button>
-        ))}
+        {TABS.map(({ id, label, Icon }) => {
+          const badge = id === 'friends' && pendingCount > dismissed.friends ? pendingCount
+                      : id === 'mail'    && unreadCount  > dismissed.mail    ? unreadCount
+                      : 0
+          return (
+            <button key={id} onClick={() => switchTab(id)}
+              className={`relative flex-1 flex items-center justify-center gap-2 py-2 rounded text-sm font-medium transition-colors
+                ${tab === id ? 'bg-surface text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}>
+              <Icon size={14} />
+              {label}
+              {badge > 0 && (
+                <span className={`absolute top-1 right-2 min-w-[16px] h-4 px-1 rounded-full text-white text-[10px] font-bold flex items-center justify-center
+                  ${id === 'friends' ? 'bg-accent' : 'bg-orange-500'}`}>
+                  {badge}
+                </span>
+              )}
+            </button>
+          )
+        })}
       </div>
 
       {/* ── Friends tab ── */}
@@ -267,6 +325,27 @@ export default function SocialPage() {
                 <div key={id} className="bg-surface border border-border rounded-lg px-4 py-3 flex items-center justify-between opacity-60">
                   <p className="text-sm text-text-muted">{profile.username}</p>
                   <button onClick={() => declineRequest(id)} className="text-2xs text-text-muted hover:text-danger transition-colors">Cancel</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Activity feed */}
+          {friends.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <p className="section-label">Recent activity</p>
+              {activityLoading && <p className="text-xs text-text-muted">Loading…</p>}
+              {!activityLoading && activity.length === 0 && (
+                <p className="text-xs text-text-muted">No recent activity from friends.</p>
+              )}
+              {activity.map((entry, i) => (
+                <div key={i} className="flex items-center justify-between text-xs text-text-muted gap-2">
+                  <p>
+                    <span className="text-text-secondary font-medium">{entry.username}</span>
+                    {' '}{ACTIVITY_LABELS[entry.action] ?? entry.action}{' '}
+                    <span className="text-text-secondary font-medium">{entry.petName}</span>
+                  </p>
+                  <span className="shrink-0">{timeAgo(entry.created_at)}</span>
                 </div>
               ))}
             </div>

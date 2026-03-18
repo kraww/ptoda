@@ -13,14 +13,13 @@ import AdminAchievements from './pages/AdminAchievements'
 import AdminAvatars      from './pages/AdminAvatars'
 import AdminGames        from './pages/AdminGames'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
-
-const ADMIN_IDS = ['a9a09202-6f21-4b9a-bb20-d0d38c49d9d7']
+import { isAdmin } from '../lib/admin'
 
 export default function AdminApp() {
-  const { user, loading } = useAuth()
+  const { user, profile, loading } = useAuth()
 
   if (loading) return <LoadingSpinner />
-  if (!user || (!ADMIN_IDS.includes(user.id) && ADMIN_IDS.length > 0)) {
+  if (!user || !isAdmin(profile)) {
     return <Navigate to="/login" replace />
   }
 

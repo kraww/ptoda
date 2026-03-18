@@ -36,9 +36,12 @@ export default function PetSprite({ pet, species, size = 160 }) {
     </div>
   )
 
+  const idleAnim = isSleeping ? '' :
+    stage === STAGE_EGG ? 'animate-pet-breathe' : 'animate-pet-float'
+
   return (
     <div className="relative" style={{ width: size, height: size }}>
-      <div className={isSleeping ? 'opacity-40 grayscale' : ''}>
+      <div className={`${idleAnim} ${isSleeping ? 'opacity-40 grayscale' : ''}`}>
         {sprite}
       </div>
 

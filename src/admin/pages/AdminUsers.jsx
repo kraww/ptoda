@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Pencil, Check, X, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react'
+import { Pencil, Check, X, ChevronDown, ChevronUp, Plus, Trash2, ShieldCheck, Shield } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
 const EVOLUTION_FORMS = ['gourmet', 'wildling', 'pristine', 'dreamer']
@@ -34,7 +34,7 @@ export default function AdminUsers() {
   async function loadUsers() {
     const { data } = await supabase
       .from('profiles')
-      .select('id, username, coins, created_at, pets(id, name, stage, is_alive, evolution_form, species_id, species:species_id(name))')
+      .select('id, username, coins, is_admin, created_at, pets(id, name, stage, is_alive, evolution_form, species_id, species:species_id(name))')
       .order('created_at', { ascending: false })
       .limit(200)
     setUsers(data ?? [])
@@ -147,6 +147,16 @@ export default function AdminUsers() {
     flash('Pet removed')
   }
 
+  async function toggleAdmin(userId, currentValue) {
+    const action = currentValue ? 'Remove admin from' : 'Make'
+    const username = users.find(u => u.id === userId)?.username ?? 'this user'
+    if (!confirm(`${action} ${username} an admin?`)) return
+    const { error } = await supabase.rpc('set_admin_status', { p_user_id: userId, p_is_admin: !currentValue })
+    if (error) { flash(error.message); return }
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_admin: !currentValue } : u))
+    flash(currentValue ? 'Admin removed' : 'Admin granted')
+  }
+
   const filtered = users.filter(u =>
     u.username?.toLowerCase().includes(search.toLowerCase())
   )
@@ -250,6 +260,14 @@ export default function AdminUsers() {
                       {u.coins ?? 0} coins <Pencil size={11} />
                     </button>
                   )}
+
+                  <button
+                    onClick={() => toggleAdmin(u.id, u.is_admin)}
+                    title={u.is_admin ? 'Remove admin' : 'Make admin'}
+                    className={`p-1.5 rounded transition-colors shrink-0 ${u.is_admin ? 'text-accent-light hover:text-danger hover:bg-danger/5' : 'text-text-muted hover:text-accent-light hover:bg-hover'}`}
+                  >
+                    {u.is_admin ? <ShieldCheck size={14} /> : <Shield size={14} />}
+                  </button>
 
                   <button
                     onClick={() => toggleExpand(u.id)}

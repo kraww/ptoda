@@ -6,8 +6,7 @@ import { useAuth } from '../../context/AuthContext'
 import Button from '../../components/ui/Button'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import Toast from '../../components/ui/Toast'
-
-const ADMIN_ID = 'a9a09202-6f21-4b9a-bb20-d0d38c49d9d7'
+import { isAdmin } from '../../lib/admin'
 
 function timeAgo(ts) {
   const diff = Date.now() - new Date(ts).getTime()
@@ -29,9 +28,9 @@ async function uploadImage(file) {
 
 export default function ForumThread() {
   const { postId } = useParams()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const navigate = useNavigate()
-  const isAdmin = user?.id === ADMIN_ID
+  const userIsAdmin = isAdmin(profile)
 
   const [post, setPost] = useState(null)
   const [replies, setReplies] = useState([])
@@ -49,6 +48,7 @@ export default function ForumThread() {
   const [editBody, setEditBody] = useState('')
   const [editImageUrl, setEditImageUrl] = useState('')
   const [editImageUploading, setEditImageUploading] = useState(false)
+  const [editImageError, setEditImageError] = useState('')
   const editFileRef = useRef()
 
   const [toast, setToast] = useState(null)
@@ -105,10 +105,11 @@ export default function ForumThread() {
     const file = e.target.files[0]
     if (!file) return
     setEditImageUploading(true)
+    setEditImageError('')
     try {
       const url = await uploadImage(file)
       setEditImageUrl(url)
-    } catch { /* ignore */ }
+    } catch { setEditImageError('Image upload failed — try again') }
     finally { setEditImageUploading(false); e.target.value = '' }
   }
 
@@ -206,6 +207,7 @@ export default function ForumThread() {
                 >
                   <Image size={13} /> {editImageUploading ? 'Uploading…' : editImageUrl ? 'Change image' : 'Add image'}
                 </button>
+                {editImageError && <span className="text-xs text-danger">{editImageError}</span>}
                 <input ref={editFileRef} type="file" accept="image/*" onChange={handleEditImageFile} className="hidden" />
                 <div className="flex-1" />
                 <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
@@ -217,7 +219,7 @@ export default function ForumThread() {
               <div className="flex items-start gap-2">
                 <h1 className="text-lg font-bold text-text-primary flex-1 leading-snug">{post.title}</h1>
                 <div className="flex items-center gap-0.5 shrink-0">
-                  {(user?.id === post.user_id || isAdmin) && (
+                  {(user?.id === post.user_id || userIsAdmin) && (
                     <button
                       onClick={startEdit}
                       className="p-1.5 text-text-muted hover:text-text-primary hover:bg-hover rounded transition-colors"
@@ -226,7 +228,7 @@ export default function ForumThread() {
                       <Pencil size={13} />
                     </button>
                   )}
-                  {isAdmin && (
+                  {userIsAdmin && (
                     <button
                       onClick={deletePost}
                       className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/5 rounded transition-colors"
@@ -294,7 +296,7 @@ export default function ForumThread() {
                   Reply
                 </button>
               )}
-              {(isAdmin || user?.id === r.user_id) && (
+              {(userIsAdmin || user?.id === r.user_id) && (
                 <button
                   onClick={() => deleteReply(r.id)}
                   className="text-xs text-text-muted hover:text-danger transition-colors"

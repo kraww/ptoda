@@ -6,6 +6,8 @@ const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(undefined) // undefined = still loading
   const [profile, setProfile] = useState(null)
+  const [loginBonus, setLoginBonus] = useState(null)   // { streak, bonus } — shown once then cleared
+  const [loginStreak, setLoginStreak] = useState(0)    // persists for session, shown in sidebar
 
   useEffect(() => {
     // Get initial session
@@ -28,12 +30,15 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function loadProfile(userId) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*, avatar:active_avatar(id, image_url)')
-      .eq('id', userId)
-      .single()
+    const [{ data }, { data: streakData }] = await Promise.all([
+      supabase.from('profiles').select('*, avatar:active_avatar(id, image_url)').eq('id', userId).single(),
+      supabase.rpc('record_login'),
+    ])
     setProfile(data ?? null)
+    if (streakData) {
+      setLoginStreak(streakData.streak ?? 0)
+      if (streakData.streak > 0) setLoginBonus(streakData)
+    }
   }
 
   async function signUp(email, password, username) {
@@ -58,7 +63,7 @@ export function AuthProvider({ children }) {
   const loading = user === undefined
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signOut, loadProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, loginBonus, loginStreak, clearLoginBonus: () => setLoginBonus(null), signUp, signIn, signOut, loadProfile }}>
       {children}
     </AuthContext.Provider>
   )

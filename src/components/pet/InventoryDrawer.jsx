@@ -8,7 +8,7 @@ import Drawer from '../ui/Drawer'
 import Toast from '../ui/Toast'
 import Button from '../ui/Button'
 
-export default function InventoryDrawer({ open, onClose }) {
+export default function InventoryDrawer({ open, onClose, compact = false }) {
   const { user } = useAuth()
   const { pet, setPet } = usePet()
   const [inventory, setInventory] = useState([])
@@ -109,7 +109,7 @@ export default function InventoryDrawer({ open, onClose }) {
 
   return (
     <>
-      <Drawer open={open} onClose={onClose} title="Use an Item">
+      <Drawer open={open} onClose={onClose} title="Use an Item" compact={compact}>
         {!pet && (
           <p className="text-text-muted text-sm text-center py-8">Adopt a pet to use items</p>
         )}

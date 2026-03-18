@@ -11,7 +11,6 @@ import RegisterPage   from './pages/RegisterPage'
 import AdoptPage      from './pages/AdoptPage'
 import PetPage        from './pages/PetPage'
 import ShopPage       from './pages/ShopPage'
-import InventoryPage  from './pages/InventoryPage'
 import NewsPage       from './pages/NewsPage'
 import ProfilePage       from './pages/ProfilePage'
 import PublicProfilePage from './pages/PublicProfilePage'
@@ -24,6 +23,8 @@ import SimonGame         from './pages/games/SimonGame'
 import LuckyRollGame     from './pages/games/LuckyRollGame'
 import ForumThread       from './pages/forum/ForumThread'
 import LoadingSpinner from './components/ui/LoadingSpinner'
+import PWAInstallPrompt from './components/PWAInstallPrompt'
+import PushRegistration from './components/PushRegistration'
 
 function AppRoutes() {
   const { user, loading, profile } = useAuth()
@@ -68,8 +69,7 @@ function AppRoutes() {
       <Route path="/adopt"     element={user ? <AppShell><AdoptPage /></AppShell>     : <Navigate to="/login" replace />} />
       <Route path="/pet"       element={user ? <AppShell><PetPage /></AppShell>       : <Navigate to="/login" replace />} />
       <Route path="/shop"      element={user ? <AppShell><ShopPage /></AppShell>      : <Navigate to="/login" replace />} />
-      <Route path="/inventory" element={user ? <AppShell><InventoryPage /></AppShell> : <Navigate to="/login" replace />} />
-      <Route path="/social"    element={user ? <AppShell><SocialPage /></AppShell>    : <Navigate to="/login" replace />} />
+<Route path="/social"    element={user ? <AppShell><SocialPage /></AppShell>    : <Navigate to="/login" replace />} />
       <Route path="/games"               element={user ? <AppShell><GamesPage /></AppShell>           : <Navigate to="/login" replace />} />
       <Route path="/games/meter-stopper" element={user ? <AppShell><MeterStopperGame /></AppShell>    : <Navigate to="/login" replace />} />
       <Route path="/games/simon"         element={user ? <AppShell><SimonGame /></AppShell>           : <Navigate to="/login" replace />} />
@@ -97,6 +97,8 @@ export default function App() {
         <PetProvider>
           <SocialProvider>
             <AppRoutes />
+          <PWAInstallPrompt />
+          <PushRegistration />
           </SocialProvider>
         </PetProvider>
       </AuthProvider>

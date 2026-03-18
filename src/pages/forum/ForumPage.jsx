@@ -34,6 +34,7 @@ export default function ForumPage() {
   const [body, setBody] = useState('')
   const [imageUrl, setImageUrl] = useState('')
   const [imageUploading, setImageUploading] = useState(false)
+  const [imageError, setImageError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const fileRef = useRef()
 
@@ -53,10 +54,11 @@ export default function ForumPage() {
     const file = e.target.files[0]
     if (!file) return
     setImageUploading(true)
+    setImageError('')
     try {
       const url = await uploadImage(file)
       setImageUrl(url)
-    } catch { /* ignore upload errors silently */ }
+    } catch { setImageError('Image upload failed — try again') }
     finally { setImageUploading(false); e.target.value = '' }
   }
 
@@ -130,6 +132,7 @@ export default function ForumPage() {
             >
               <Image size={13} /> {imageUploading ? 'Uploading…' : 'Add image'}
             </button>
+            {imageError && <span className="text-xs text-danger">{imageError}</span>}
             <input ref={fileRef} type="file" accept="image/*" onChange={handleImageFile} className="hidden" />
             <div className="flex-1" />
             <Button size="sm" variant="ghost" onClick={cancelForm}>Cancel</Button>

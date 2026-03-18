@@ -68,7 +68,7 @@ export default function ProfilePage() {
     if (!user) return
     supabase
       .from('pets')
-      .select('id, name, evolution_form, species:species_id(*)')
+      .select('id, name, evolution_form, evolved_at, released_at, adopted_at, species:species_id(*)')
       .eq('user_id', user.id).eq('is_released', true)
       .order('released_at', { ascending: false })
       .then(({ data }) => setReleasedPets(data ?? []))
@@ -179,10 +179,11 @@ export default function ProfilePage() {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-4 gap-2">
         {[
           { label: 'Coins',    value: profile?.coins ?? 0 },
           { label: 'Released', value: releasedPets.length },
+          { label: 'Streak',   value: `${profile?.streak_days ?? 0}d` },
           { label: 'Email',    value: user?.email?.split('@')[0] ?? '—' },
         ].map(({ label, value }) => (
           <div key={label} className="bg-surface border border-border rounded-lg px-3 py-3 text-center">
@@ -203,6 +204,11 @@ export default function ProfilePage() {
               <p className="text-xs text-text-muted capitalize">
                 {species?.name ?? '—'} · {pet.evolution_form ?? pet.stage}
               </p>
+              {pet.adopted_at && (
+                <p className="text-2xs text-text-muted/70 mt-0.5">
+                  Adopted {new Date(pet.adopted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -216,14 +222,25 @@ export default function ProfilePage() {
             {failedCount > 0 && <span className="text-2xs text-text-muted">{failedCount} lost</span>}
           </div>
           <div className="flex flex-wrap gap-3">
-            {releasedPets.map(p => (
-              <div key={p.id} className="flex flex-col items-center gap-1">
-                <div className="w-14 h-14 rounded-lg bg-card border border-border flex items-center justify-center">
-                  <PetSprite pet={p} species={p.species} size={48} />
+            {releasedPets.map(p => {
+              const days = p.evolved_at && p.released_at
+                ? Math.max(1, Math.round((new Date(p.released_at) - new Date(p.evolved_at)) / 86400000))
+                : null
+              return (
+                <div key={p.id} className="flex flex-col items-center gap-1">
+                  <div className="w-14 h-14 rounded-lg bg-card border border-border flex items-center justify-center">
+                    <PetSprite pet={p} species={p.species} size={48} />
+                  </div>
+                  <p className="text-2xs text-text-muted text-center truncate max-w-[56px]">{p.name}</p>
+                  {p.adopted_at && (
+                    <p className="text-2xs text-text-muted/60 text-center">
+                      {new Date(p.adopted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
+                    </p>
+                  )}
+                  {days && <p className="text-2xs text-text-muted/60 text-center">{days}d</p>}
                 </div>
-                <p className="text-2xs text-text-muted text-center truncate max-w-[56px]">{p.name}</p>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}

@@ -3,19 +3,25 @@ import { supabase } from '../../lib/supabase'
 import Button from '../../components/ui/Button'
 import ImageUpload from '../components/ImageUpload'
 
-const CATEGORIES = ['food', 'toy', 'soap', 'bed']
+const CATEGORIES = ['food', 'toy', 'soap', 'bed', 'medicine']
 const STATS = ['hunger', 'happiness', 'cleanliness', 'energy']
-const EMPTY = { name: '', description: '', category: 'food', price: 10, stat_target: 'hunger', stat_boost: 20, sprite: '', is_available: true }
+const THEMES = ['neutral', 'forest']
+const EMPTY = { name: '', description: '', category: 'food', price: 10, stat_target: 'hunger', stat_boost: 20, sprite: '', is_available: true, unlock_type: '', unlock_value: '' }
 
 export default function AdminItems() {
   const [list, setList] = useState([])
+  const [avatars, setAvatars] = useState([])
   const [form, setForm] = useState(null)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState(null)
 
   async function load() {
-    const { data } = await supabase.from('items').select('*').order('name')
-    setList(data ?? [])
+    const [{ data: items }, { data: avs }] = await Promise.all([
+      supabase.from('items').select('*').order('name'),
+      supabase.from('avatars').select('id, name').order('name'),
+    ])
+    setList(items ?? [])
+    setAvatars(avs ?? [])
   }
   useEffect(() => { load() }, [])
 
@@ -23,7 +29,14 @@ export default function AdminItems() {
     setSaving(true)
     setMsg(null)
     try {
-      const payload = { ...form, price: Number(form.price), stat_boost: Number(form.stat_boost), sprite: form.sprite || null }
+      const payload = {
+        ...form,
+        price: Number(form.price),
+        stat_boost: Number(form.stat_boost),
+        sprite: form.sprite || null,
+        unlock_type: form.unlock_type || null,
+        unlock_value: form.unlock_value || null,
+      }
       if (form.id) {
         await supabase.from('items').update(payload).eq('id', form.id)
       } else {
@@ -63,13 +76,16 @@ export default function AdminItems() {
           <div key={item.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between gap-3">
             <div>
               <div className="font-semibold">{item.name}</div>
-              <div className="text-slate-400 text-xs">{item.category} · {item.price} 🪙 · +{item.stat_boost} {item.stat_target}</div>
+              {item.unlock_type
+                ? <div className="text-purple-400 text-xs">Unlock: {item.unlock_type} · {item.price} coins</div>
+                : <div className="text-slate-400 text-xs">{item.category} · {item.price} 🪙 · +{item.stat_boost} {item.stat_target}</div>
+              }
               <div className={`text-xs mt-1 ${item.is_available ? 'text-green-400' : 'text-slate-600'}`}>
                 {item.is_available ? 'In shop' : 'Hidden'}
               </div>
             </div>
             <div className="flex gap-2 shrink-0">
-              <Button size="sm" variant="secondary" onClick={() => setForm({ ...item })}>Edit</Button>
+              <Button size="sm" variant="secondary" onClick={() => setForm({ ...EMPTY, ...item, unlock_type: item.unlock_type ?? '', unlock_value: item.unlock_value ?? '' })}>Edit</Button>
               <Button size="sm" variant="ghost" onClick={() => toggle(item)}>
                 {item.is_available ? 'Hide' : 'Show'}
               </Button>
@@ -99,32 +115,69 @@ export default function AdminItems() {
                 className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary-500" />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-slate-400">Category</label>
-                <select value={form.category} onChange={e => set('category', e.target.value)}
-                  className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none">
-                  {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-                </select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-slate-400">Stat target</label>
-                <select value={form.stat_target} onChange={e => set('stat_target', e.target.value)}
-                  className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none">
-                  {STATS.map(s => <option key={s}>{s}</option>)}
-                </select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-slate-400">Price (coins)</label>
-                <input type="number" min={0} value={form.price} onChange={e => set('price', e.target.value)}
-                  className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-slate-400">Stat boost (+pts)</label>
-                <input type="number" min={1} max={100} value={form.stat_boost} onChange={e => set('stat_boost', e.target.value)}
-                  className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none" />
-              </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm text-slate-400">Price (coins)</label>
+              <input type="number" min={0} value={form.price} onChange={e => set('price', e.target.value)}
+                className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none" />
             </div>
+
+            {/* Unlock type selector */}
+            <div className="flex flex-col gap-1">
+              <label className="text-sm text-slate-400">Unlock type</label>
+              <select value={form.unlock_type} onChange={e => { set('unlock_type', e.target.value); set('unlock_value', '') }}
+                className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none">
+                <option value="">None (regular item)</option>
+                <option value="theme">Theme</option>
+                <option value="avatar">Avatar</option>
+              </select>
+            </div>
+
+            {form.unlock_type === 'theme' && (
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-slate-400">Theme to unlock</label>
+                <select value={form.unlock_value} onChange={e => set('unlock_value', e.target.value)}
+                  className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none">
+                  <option value="">Select theme…</option>
+                  {THEMES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+            )}
+
+            {form.unlock_type === 'avatar' && (
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-slate-400">Avatar to unlock</label>
+                <select value={form.unlock_value} onChange={e => set('unlock_value', e.target.value)}
+                  className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none">
+                  <option value="">Select avatar…</option>
+                  {avatars.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              </div>
+            )}
+
+            {/* Stat fields — only for regular items */}
+            {!form.unlock_type && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-slate-400">Category</label>
+                  <select value={form.category} onChange={e => set('category', e.target.value)}
+                    className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none">
+                    {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-slate-400">Stat target</label>
+                  <select value={form.stat_target} onChange={e => set('stat_target', e.target.value)}
+                    className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none">
+                    {STATS.map(s => <option key={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1 col-span-2">
+                  <label className="text-sm text-slate-400">Stat boost (+pts)</label>
+                  <input type="number" min={1} max={100} value={form.stat_boost} onChange={e => set('stat_boost', e.target.value)}
+                    className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none" />
+                </div>
+              </div>
+            )}
 
             <ImageUpload label="Item image" value={form.sprite} folder="items"
               onChange={url => set('sprite', url)} />

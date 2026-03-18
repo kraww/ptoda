@@ -5,7 +5,7 @@ import ImageUpload from '../components/ImageUpload'
 
 const EVOLUTION_FORMS = ['gourmet', 'wildling', 'pristine', 'dreamer']
 
-const EMPTY = { name: '', description: '', egg_sprite: '', base_sprite: '', evolution_sprites: {}, is_available: true, availability_type: 'always', night_start: 22, night_end: 6, milestone_required: 1 }
+const EMPTY = { name: '', description: '', egg_sprite: '', base_sprite: '', evolution_sprites: {}, is_available: true, availability_type: 'always', night_start: 22, night_end: 6, milestone_required: 1, hatch_hours: 24 }
 
 export default function AdminSpecies() {
   const [list, setList] = useState([])
@@ -34,6 +34,7 @@ export default function AdminSpecies() {
         night_start: Number(form.night_start ?? 22),
         night_end: Number(form.night_end ?? 6),
         milestone_required: Number(form.milestone_required ?? 1),
+        hatch_hours: Number(form.hatch_hours ?? 24),
       }
       if (form.id) {
         await supabase.from('species').update(payload).eq('id', form.id)
@@ -75,6 +76,7 @@ export default function AdminSpecies() {
                 {sp.is_available && sp.availability_type && sp.availability_type !== 'always' && (
                   <span className="ml-2 text-slate-400">· {sp.availability_type === 'night_only' ? `Night (${sp.night_start}–${sp.night_end}h)` : `Milestone (${sp.milestone_required} releases)`}</span>
                 )}
+                <span className="ml-2 text-slate-500">· Hatches in {sp.hatch_hours ?? 24}h</span>
               </div>
             </div>
             <div className="flex gap-2 shrink-0">
@@ -172,6 +174,14 @@ export default function AdminSpecies() {
                   className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none" />
               </div>
             )}
+
+            <div className="flex flex-col gap-1">
+              <label className="text-sm text-slate-400">Hatch time (hours)</label>
+              <input type="number" min={1} max={168} value={form.hatch_hours ?? 24}
+                onChange={e => setForm(f => ({ ...f, hatch_hours: e.target.value }))}
+                className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none" />
+              <p className="text-xs text-slate-500">How long until the egg hatches on its own. Players can tap every 2h to speed it up by 1h each tap.</p>
+            </div>
 
             <div className="flex gap-3 pt-2">
               <Button onClick={save} disabled={saving || !form.name}>{saving ? 'Saving…' : 'Save'}</Button>

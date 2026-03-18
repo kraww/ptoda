@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Users, Mail, UserPlus, Check, X, Send, ChevronDown, Hash } from 'lucide-react'
+import { Users, Mail, UserPlus, Check, X, Send, ChevronDown, MessageSquare } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useSocial } from '../context/SocialContext'
@@ -141,7 +141,7 @@ export default function SocialPage() {
   const TABS = [
     { id: 'friends',   label: 'Friends',   Icon: Users },
     { id: 'mail',      label: 'Mail',      Icon: Mail },
-    { id: 'community', label: 'Community', Icon: Hash },
+    { id: 'community', label: 'Community', Icon: MessageSquare },
   ]
 
   return (

@@ -40,7 +40,7 @@ export default function Sidebar() {
         <img
           src="https://ikzzynpovxmrkrigmruz.supabase.co/storage/v1/object/public/assets/tpodadefaultlogo.png"
           alt="T'poda"
-          className="h-8 w-auto object-contain"
+          className="h-12 w-auto object-contain"
         />
       </div>
 

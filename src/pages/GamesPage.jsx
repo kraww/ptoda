@@ -21,7 +21,7 @@ export default function GamesPage() {
     if (!user) return
     async function load() {
       const { data: gamesData } = await supabase
-        .from('games').select('*').eq('is_active', true).order('created_at')
+        .from('games').select('*').eq('is_active', true).order('key')
       setGames(gamesData ?? [])
 
       const start = new Date()

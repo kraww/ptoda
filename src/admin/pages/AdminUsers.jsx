@@ -34,7 +34,7 @@ export default function AdminUsers() {
   async function loadUsers() {
     const { data } = await supabase
       .from('profiles')
-      .select('id, username, coins, is_admin, created_at, pets(id, name, stage, is_alive, evolution_form, species_id, species:species_id(name))')
+      .select('id, username, coins, is_admin, created_at, pets(id, name, stage, is_alive, is_released, evolved_at, evolution_form, species_id, species:species_id(name))')
       .order('created_at', { ascending: false })
       .limit(200)
     setUsers(data ?? [])
@@ -145,6 +145,14 @@ export default function AdminUsers() {
     await supabase.from('pets').update({ is_alive: false }).eq('id', petId)
     await loadUsers()
     flash('Pet removed')
+  }
+
+  async function forceReleasable(petId) {
+    // Backdate evolved_at by 10 days so the release timer is satisfied on next refresh
+    const tenDaysAgo = new Date(Date.now() - 10 * 86400000).toISOString()
+    await supabase.from('pets').update({ evolved_at: tenDaysAgo }).eq('id', petId)
+    await loadUsers()
+    flash('Release timer bypassed — refresh your pet page to release')
   }
 
   async function toggleAdmin(userId, currentValue) {
@@ -304,7 +312,7 @@ export default function AdminUsers() {
                               Reset stats to 100
                             </button>
 
-                            {activePet.stage !== 'evolved' && (
+                            {activePet.stage !== 'evolved' ? (
                               evolving === u.id ? (
                                 <div className="flex items-center gap-2">
                                   <select
@@ -339,6 +347,13 @@ export default function AdminUsers() {
                                   Force evolve
                                 </button>
                               )
+                            ) : !activePet.is_released && (
+                              <button
+                                onClick={() => forceReleasable(activePet.id)}
+                                className="text-xs px-2.5 py-1.5 bg-card border border-border rounded text-text-muted hover:text-text-primary hover:bg-hover transition-colors"
+                              >
+                                Force release
+                              </button>
                             )}
 
                             <button

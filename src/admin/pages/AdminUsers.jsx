@@ -300,6 +300,7 @@ export default function AdminUsers() {
                               <p className="text-sm font-medium text-text-primary capitalize">{activePet.name}</p>
                               <p className="text-xs text-text-muted capitalize">
                                 {activePet.species?.name ?? '?'} · {activePet.evolution_form ?? activePet.stage}
+                                <span className="ml-2 text-orange-400 normal-case">[stage: {String(activePet.stage)}]</span>
                               </p>
                             </div>
                           </div>

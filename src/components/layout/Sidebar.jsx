@@ -36,8 +36,12 @@ export default function Sidebar() {
 
   return (
     <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-56 bg-sidebar border-r border-border z-40">
-      <div className="px-4 py-5 border-b border-border">
-        <span className="text-lg font-bold text-text-primary tracking-tight">T'poda</span>
+      <div className="px-4 py-4 border-b border-border">
+        <img
+          src="https://ikzzynpovxmrkrigmruz.supabase.co/storage/v1/object/public/assets/tpodadefaultlogo.png"
+          alt="T'poda"
+          className="h-8 w-auto object-contain"
+        />
       </div>
 
       <nav className="flex-1 px-2 py-3 flex flex-col gap-0.5">

@@ -23,7 +23,7 @@ export default function SocialPage() {
   const { user } = useAuth()
   const { refresh: refreshCounts } = useSocial()
   const [searchParams] = useSearchParams()
-  const [tab, setTab] = useState(searchParams.get('tab') ?? 'friends')
+  const [tab, setTab] = useState(searchParams.get('tab') ?? 'community')
   const [toast, setToast] = useState(null)
 
   // Friends state

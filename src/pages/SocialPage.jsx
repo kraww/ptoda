@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Users, Mail, UserPlus, Check, X, Send, ChevronDown } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import { Users, Mail, UserPlus, Check, X, Send, ChevronDown, Hash } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useSocial } from '../context/SocialContext'
 import Button from '../components/ui/Button'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import Toast from '../components/ui/Toast'
+import ForumPage from './forum/ForumPage'
 
 function timeAgo(ts) {
   const diff = Date.now() - new Date(ts).getTime()
@@ -20,7 +22,8 @@ function timeAgo(ts) {
 export default function SocialPage() {
   const { user } = useAuth()
   const { refresh: refreshCounts } = useSocial()
-  const [tab, setTab] = useState('friends')
+  const [searchParams] = useSearchParams()
+  const [tab, setTab] = useState(searchParams.get('tab') ?? 'friends')
   const [toast, setToast] = useState(null)
 
   // Friends state
@@ -136,8 +139,9 @@ export default function SocialPage() {
   }
 
   const TABS = [
-    { id: 'friends', label: 'Friends', Icon: Users },
-    { id: 'mail',    label: 'Mail',    Icon: Mail },
+    { id: 'friends',   label: 'Friends',   Icon: Users },
+    { id: 'mail',      label: 'Mail',      Icon: Mail },
+    { id: 'community', label: 'Community', Icon: Hash },
   ]
 
   return (
@@ -307,6 +311,9 @@ export default function SocialPage() {
           )}
         </div>
       )}
+
+      {/* Community tab */}
+      {tab === 'community' && <ForumPage />}
 
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
     </div>

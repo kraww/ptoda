@@ -22,6 +22,7 @@ import SocialPage        from './pages/SocialPage'
 import MeterStopperGame  from './pages/games/MeterStopperGame'
 import SimonGame         from './pages/games/SimonGame'
 import LuckyRollGame     from './pages/games/LuckyRollGame'
+import ForumThread       from './pages/forum/ForumThread'
 import LoadingSpinner from './components/ui/LoadingSpinner'
 
 function AppRoutes() {
@@ -74,6 +75,9 @@ function AppRoutes() {
       <Route path="/games/simon"         element={user ? <AppShell><SimonGame /></AppShell>           : <Navigate to="/login" replace />} />
       <Route path="/games/lucky-roll"    element={user ? <AppShell><LuckyRollGame /></AppShell>       : <Navigate to="/login" replace />} />
       <Route path="/profile"   element={user ? <AppShell><ProfilePage /></AppShell>   : <Navigate to="/login" replace />} />
+
+      {/* Forum threads — no login required to read, AppShell for logged-in users */}
+      <Route path="/community/:postId" element={user ? <AppShell><ForumThread /></AppShell> : <ForumThread />} />
 
       {/* Public profiles — no login required */}
       <Route path="/user/:username" element={<PublicProfilePage />} />

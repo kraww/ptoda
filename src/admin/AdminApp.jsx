@@ -8,6 +8,7 @@ import AdminItems from './pages/AdminItems'
 import AdminDecay from './pages/AdminDecay'
 import AdminUsers from './pages/AdminUsers'
 import AdminPosts        from './pages/AdminPosts'
+import AdminForum        from './pages/AdminForum'
 import AdminAchievements from './pages/AdminAchievements'
 import AdminAvatars      from './pages/AdminAvatars'
 import AdminGames        from './pages/AdminGames'
@@ -52,6 +53,7 @@ export default function AdminApp() {
           <Route path="decay"   element={<AdminDecay />} />
           <Route path="users"   element={<AdminUsers />} />
           <Route path="posts"        element={<AdminPosts />} />
+          <Route path="forum"        element={<AdminForum />} />
           <Route path="achievements" element={<AdminAchievements />} />
           <Route path="avatars"      element={<AdminAvatars />} />
           <Route path="games"        element={<AdminGames />} />

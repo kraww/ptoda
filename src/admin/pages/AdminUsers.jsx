@@ -347,7 +347,7 @@ export default function AdminUsers() {
                                   Force evolve
                                 </button>
                               )
-                            ) : !activePet.is_released && (
+                            ) : (
                               <button
                                 onClick={() => forceReleasable(activePet.id)}
                                 className="text-xs px-2.5 py-1.5 bg-card border border-border rounded text-text-muted hover:text-text-primary hover:bg-hover transition-colors"

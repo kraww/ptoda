@@ -40,11 +40,11 @@ export function AuthProvider({ children }) {
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) throw error
     if (data.user) {
-      await supabase.from('profiles').insert({
+      await supabase.from('profiles').upsert({
         id: data.user.id,
         username,
         coins: 0,
-      })
+      }, { onConflict: 'id' })
     }
     return data
   }

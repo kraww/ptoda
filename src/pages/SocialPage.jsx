@@ -158,9 +158,9 @@ export default function SocialPage() {
   }
 
   const TABS = [
+    { id: 'community', label: 'Community', Icon: MessageSquare },
     { id: 'friends',   label: 'Friends',   Icon: Users },
     { id: 'mail',      label: 'Mail',      Icon: Mail },
-    { id: 'community', label: 'Community', Icon: MessageSquare },
   ]
 
   const currentMessages = mailBox === 'inbox' ? inbox : outbox

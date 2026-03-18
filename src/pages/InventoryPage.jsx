@@ -31,12 +31,14 @@ export default function InventoryPage() {
   }
 
   async function loadFriends() {
+    if (!user) return
     const { data: fships } = await supabase
       .from('friendships')
-      .select('requester_id, recipient_id')
+      .select('requester_id, recipient_id, status')
       .or(`requester_id.eq.${user.id},recipient_id.eq.${user.id}`)
-      .eq('status', 'accepted')
-    const otherIds = (fships ?? []).map(f => f.requester_id === user.id ? f.recipient_id : f.requester_id)
+    const otherIds = (fships ?? [])
+      .filter(f => f.status === 'accepted')
+      .map(f => f.requester_id === user.id ? f.recipient_id : f.requester_id)
     if (otherIds.length === 0) { setFriends([]); return }
     const { data: profiles } = await supabase.from('profiles').select('id, username').in('id', otherIds)
     setFriends(profiles ?? [])

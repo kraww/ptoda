@@ -363,7 +363,7 @@ function buildCard(script, index) {
     .map(p => '<span class="page-tag">' + p + '</span>')
     .join('');
 
-  const screenshotSrc = 'screenshots/' + script.slug + '.png';
+  const screenshotSrc = script.slug + '.png';
   const screenshotHtml =
     '<div class="card-screenshot">' +
       '<img src="' + screenshotSrc + '" alt="' + escapeHtml(script.name) + ' screenshot" ' +

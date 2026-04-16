@@ -249,6 +249,33 @@
       tab-size: 4;
     }
 
+    .disclaimer {
+      background: #fffbea;
+      border-bottom: 1px solid #e8dfc8;
+      border-top: 3px solid #FFD700;
+      padding: 16px 24px;
+    }
+    .disclaimer-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .disclaimer-icon {
+      color: #b38600;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .disclaimer-text {
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: #5a4a00;
+    }
+    .disclaimer-text strong {
+      color: #3d3200;
+    }
+
     footer {
       text-align: center;
       padding: 24px;
@@ -272,6 +299,15 @@
   <h1>Neopets Scripts <span>by Krawwly</span></h1>
   <p>Quality-of-life userscripts for Neopets. Copy any script below and paste it into Tampermonkey to install.</p>
 </header>
+
+<div class="disclaimer">
+  <div class="disclaimer-inner">
+    <i data-lucide="shield-check" class="disclaimer-icon"></i>
+    <p class="disclaimer-text">
+      <strong>None of these scripts provide automation.</strong> They are built with the Neopets Terms of Service in mind &mdash; no auto-clicking, no botting, no unfair advantages. These are purely visual and quality-of-life changes to make managing multiple pets and playing the game easier and more enjoyable. As with all userscripts, <strong>use at your own risk.</strong>
+    </p>
+  </div>
+</div>
 
 <div class="install-section">
   <div class="install-inner">
